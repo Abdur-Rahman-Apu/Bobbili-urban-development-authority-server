@@ -5,6 +5,7 @@ const mime = require("mime-types");
 const multer = require("multer");
 const stream = require("stream");
 const { DateTime } = require("luxon");
+const { Juspay, APIError } = require("expresscheckout-nodejs");
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -1007,7 +1008,7 @@ async function run() {
 
     if (role === "ltp") {
       totalDraftApplications = await draftApplicationCollection
-        .find({ _id: new ObjectId(id) })
+        .find(query)
         .toArray();
       totalSubmitApplications = await submitApplicationCollection
         .find(query)
@@ -2438,6 +2439,7 @@ async function run() {
       payment: "1pWE9tZrfsjiZxNORP5ZwL7Bm72S7JKpY",
       siteInspection: "1uVuXJz9kfWXyAg5ENfEiWL2qfDtCMa_Z",
       approvedDocSignedPS: "1QCF6Cj1p_UG7xAx_JY0fTaQgzjKXWOAH",
+      sign: "1ZbWRCY-HDOrfObNNEfqo1Fxunsx3cyAh",
     };
 
     console.log("Aschi");
