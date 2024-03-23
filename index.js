@@ -2616,9 +2616,15 @@ async function run() {
   app.patch("/updateUserInfo/:id", async (req, res) => {
     const id = req.params.id;
 
-    const data = req.body;
+    const { data, isPsSigned, signId } = req.body;
 
     console.log(id, data);
+
+    if (data?.role.toLowerCase() === "ps" && isPsSigned) {
+      authorize().then((authClient) =>
+        deleteGoggleDriveFile(authClient, signId)
+      );
+    }
 
     // if (data?.role?.toLowerCase() === "ps") {
     //   data["handOver"] = data?.handOver === "true" ? true : false;
