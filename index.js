@@ -5,10 +5,16 @@ const mime = require("mime-types");
 const multer = require("multer");
 const stream = require("stream");
 const { DateTime } = require("luxon");
+const axios = require("axios");
 const { Juspay, APIError } = require("expresscheckout-nodejs");
 app.use(cors());
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
 const storage = multer.memoryStorage(); // Store file in memory (can also use diskStorage)
 const upload = multer({ storage: storage });
 // app.use(uploadRouter);
@@ -251,6 +257,25 @@ const port = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.send("Server is running");
+});
+
+app.get("/pdf", async (req, res) => {
+  try {
+    const fileId = req.query.fileId;
+    console.log(fileId, "file id");
+    if (!fileId) {
+      return res.status(400).send("File ID is required.");
+    }
+
+    const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    const response = await axios.get(url, { responseType: "stream" });
+
+    // Forward response from Google Drive to the client
+    response.data.pipe(res);
+  } catch (error) {
+    console.error("Error fetching PDF:", error);
+    res.status(500).send("Internal server error");
+  }
 });
 
 server.listen(port, () => {
@@ -645,6 +670,8 @@ async function run() {
 
       if (role?.toLowerCase() === "ps") {
         userInfo["handOver"] = result?.handOver;
+        userInfo["signId"] = result?.signId;
+        userInfo["gramaPanchayat"] = result?.gramaPanchayat;
       }
 
       res.send({
