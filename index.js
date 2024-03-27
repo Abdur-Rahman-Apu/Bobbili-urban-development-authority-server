@@ -2427,6 +2427,21 @@ async function run() {
     );
   });
 
+  app.get("/getShortfallSerial", async (req, res) => {
+    const allShortfallApp = await shortfallCollection.find({}).toArray();
+    if (allShortfallApp.length) {
+      let max = -999;
+      allShortfallApp.forEach((app) => {
+        if (app.shortfallSerialNo > max) {
+          max = app.shortfallSerialNo;
+        }
+      });
+      res.send({ shortfallSerialNo: max });
+    } else {
+      res.send({ shortfallSerialNo: 1 });
+    }
+  });
+
   // Store draft application in the database
   app.post("/addApplication", async (req, res) => {
     const data = req.body;
