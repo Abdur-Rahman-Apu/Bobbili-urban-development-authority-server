@@ -5,6 +5,8 @@ const mime = require("mime-types");
 const multer = require("multer");
 const stream = require("stream");
 const { DateTime } = require("luxon");
+const fetch = require("node-fetch");
+// import fetch from "node-fetch";
 const axios = require("axios");
 const { Juspay, APIError } = require("expresscheckout-nodejs");
 app.use(cors());
@@ -274,6 +276,31 @@ app.get("/pdf", async (req, res) => {
     response.data.pipe(res);
   } catch (error) {
     console.error("Error fetching PDF:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+app.get("/proxy-image", async (req, res) => {
+  try {
+    const imageUrl = req.query.url;
+    const response = await fetch(imageUrl);
+    const imageBuffer = await response.buffer();
+    res.set("Content-Type", response.headers.get("Content-Type"));
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+app.get("/get-image", async (req, res) => {
+  try {
+    const imageUrl = req.query.url;
+    const response = await fetch(imageUrl);
+    const imageData = await response.blob();
+    res.send(imageData);
+  } catch (error) {
+    console.error("Error fetching image:", error);
     res.status(500).send("Internal server error");
   }
 });
