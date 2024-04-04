@@ -333,11 +333,27 @@ async function run() {
     .db("Construction-Application")
     .collection("visitorCount");
 
+  const psOtpCollection = client
+    .db("Construction-Application")
+    .collection("psSignOtp");
+
   // visitor count api
 
   app.get("/getVisitorCount", async (req, res) => {
     const result = await visitorCountCollection.find({}).toArray();
     res.send(result);
+  });
+
+  // ps sign otp store
+  app.patch("/storeOtpForPsSign", async (req, res) => {
+    console.log(req.body);
+    const { psId, otp } = req.body;
+    const updateDoc = {
+      $set: { otp },
+    };
+    const filter = { psId };
+    const result = await psOtpCollection.updateOne(filter, updateDoc);
+    res.send(result)
   });
 
   // update logged in flag  and increase visitor count
