@@ -353,7 +353,18 @@ async function run() {
     };
     const filter = { psId };
     const result = await psOtpCollection.updateOne(filter, updateDoc);
-    res.send(result)
+    res.send(result);
+  });
+
+  // ps sign otp match
+  app.get("/otpMatchForPsSign", async (req, res) => {
+    const { psId, otp } = JSON.parse(req.query.data);
+    const findUser = await psOtpCollection.findOne({ psId });
+    if (findUser?.otp === otp) {
+      res.send({ otpMatched: 1 });
+    } else {
+      res.send({ otpMatched: 0 });
+    }
   });
 
   // update logged in flag  and increase visitor count
