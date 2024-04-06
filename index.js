@@ -366,6 +366,9 @@ async function run() {
   const psOtpCollection = client
     .db("Construction-Application")
     .collection("psSignOtp");
+  const forgotPassOtpCollection = client
+    .db("Construction-Application")
+    .collection("forgotPasswordOtp");
 
   // visitor count api
 
@@ -375,14 +378,14 @@ async function run() {
   });
 
   // ps sign otp store
-  app.patch("/storeOtpForPsSign", async (req, res) => {
+  app.post("/storeOtpForPsSign", async (req, res) => {
     console.log(req.body);
     const { psId, otp } = req.body;
-    const updateDoc = {
-      $set: { otp },
-    };
-    const filter = { psId };
-    const result = await psOtpCollection.updateOne(filter, updateDoc);
+
+    // delete previous stored otp
+    const deletePreviousOtp = await psOtpCollection.deleteOne({ psId });
+
+    const result = await psOtpCollection.insertOne({ psId, otp });
     res.send(result);
   });
 
@@ -391,6 +394,39 @@ async function run() {
     const { psId, otp } = JSON.parse(req.query.data);
     const findUser = await psOtpCollection.findOne({ psId });
     if (findUser?.otp === otp) {
+      res.send({ otpMatched: 1 });
+    } else {
+      res.send({ otpMatched: 0 });
+    }
+  });
+
+  // store otp for forgot password
+  app.post("/storeOtpForForgotPassword", async (req, res) => {
+    console.log(req.body);
+    const { userId, otp } = req.body;
+    const result = await forgotPassOtpCollection.insertOne({ userId, otp });
+    res.send(result);
+  });
+
+  app.get("/otpMatchForForgotPassword", async (req, res) => {
+    const { userId, otp, password } = JSON.parse(req.query.data);
+    const findUser = await forgotPassOtpCollection.findOne({ userId });
+    if (findUser?.otp === otp) {
+      // update user password
+      const updateDoc = {
+        $set: { password },
+      };
+
+      const updatePassword = await userCollection.updateOne(
+        {
+          userId,
+        },
+        updateDoc
+      );
+
+      //  Delete the otp
+      const deleteTheOtp = await forgotPassOtpCollection.deleteOne({ userId });
+
       res.send({ otpMatched: 1 });
     } else {
       res.send({ otpMatched: 0 });
@@ -3197,7 +3233,12 @@ async function run() {
         insertedData = await shortfallCollection.insertOne(findApplication);
       }
 
-      const deleteData = await submitApplicationCollection.deleteOne(filter);
+      const deleteSubmittedData = await submitApplicationCollection.deleteOne(
+        filter
+      );
+
+      // delete otp for ps sign
+      const deleteOtpForPsSign = await psOtpCollection.deleteOne({ psId });
 
       res.send(insertedData);
     } else {
