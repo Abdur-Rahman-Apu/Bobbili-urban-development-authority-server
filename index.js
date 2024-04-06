@@ -18,7 +18,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const storage = multer.memoryStorage(); // Store file in memory (can also use diskStorage)
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fieldSize: 25 * 1024 * 1024 },
+});
 // app.use(uploadRouter);
 const http = require("http");
 const { Server } = require("socket.io");
@@ -2535,6 +2538,7 @@ async function run() {
       payment: "1pWE9tZrfsjiZxNORP5ZwL7Bm72S7JKpY",
       siteInspection: "1uVuXJz9kfWXyAg5ENfEiWL2qfDtCMa_Z",
       approvedDocSignedPS: "1QCF6Cj1p_UG7xAx_JY0fTaQgzjKXWOAH",
+      shortfallDocSignedPS: "1EdI3-srZgY-aodMIJJtD0BDPwCrSsD9K",
       sign: "1ZbWRCY-HDOrfObNNEfqo1Fxunsx3cyAh",
     };
 
@@ -2689,7 +2693,22 @@ async function run() {
 
     // console.log(findApplication, "Find application");
 
-    const updateData = { ...findApplication, ...newData };
+    let psSignedFiles;
+
+    if (newData?.siteInspection) {
+      const isShortfall =
+        newData?.siteInspection?.decision?.toLowerCase() === "shortfall";
+      if (isShortfall) {
+        psSignedFiles = { endorsementFile: "" };
+      } else {
+        psSignedFiles = { proceedingFile: "", drawingFile: "" };
+      }
+    }
+
+    const updateData =
+      psSignedFiles === undefined
+        ? { ...findApplication, ...newData }
+        : { ...findApplication, ...newData, psSignedFiles };
 
     // console.log(findApplication, "findApplication");
 
@@ -3138,6 +3157,17 @@ async function run() {
       };
     } else {
       needToAdd = { psSubmitDate, status, psId };
+    }
+
+    // check previous uploaded file is present or not
+    const signedFilesId = findApplication["psSignedFiles"];
+
+    for (const key in signedFilesId) {
+      if (signedFilesId[key]?.length) {
+        authorize().then((authClient) =>
+          deleteGoggleDriveFile(authClient, signedFilesId[key])
+        );
+      }
     }
 
     const updateData = { ...findApplication, ...needToAdd, psSignedFiles };
