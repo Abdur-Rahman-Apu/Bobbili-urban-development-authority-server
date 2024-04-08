@@ -334,10 +334,6 @@ async function run() {
     .db("Construction-Application")
     .collection("submitApplication");
 
-  const documentPageCollection = client
-    .db("Construction-Application")
-    .collection("DocumentPage");
-
   const draftApplicationCollection = client
     .db("Construction-Application")
     .collection("draftApplications");
@@ -371,7 +367,6 @@ async function run() {
     .collection("forgotPasswordOtp");
 
   // visitor count api
-
   app.get("/getVisitorCount", async (req, res) => {
     const result = await visitorCountCollection.find({}).toArray();
     res.send(result);
@@ -480,7 +475,6 @@ async function run() {
   });
 
   // chat box related api
-
   app.post("/messageRequest", async (req, res) => {
     const data = req.body;
     console.log(data);
@@ -614,6 +608,7 @@ async function run() {
     res.send(result);
   });
 
+  // socket io
   const users = [
     { id: "admin1", socketId: "", connected: false },
     { id: "admin2", socketId: "", connected: false },
@@ -701,7 +696,6 @@ async function run() {
   });
 
   // jwt related api
-
   function generateToken(data) {
     return jwt.sign(data, process.env.PRIVATE_TOKEN, { expiresIn: "3h" });
   }
@@ -732,11 +726,6 @@ async function run() {
 
     // console.log(res.cookie(), "response cookie");
     res.status(200).json({ success: true, token: bearerToken });
-  });
-
-  app.get("/documents", async (req, res) => {
-    const result = await documentPageCollection.find({}).toArray();
-    res.send(result);
   });
 
   // get users data
@@ -823,6 +812,60 @@ async function run() {
       ...shortfallApplications,
     ];
     res.send(result);
+  });
+
+  // get searched application
+  app.get("/getSearchedApplication", async (req, res) => {
+    const query = req.query.search;
+
+    console.log(query);
+    let filter;
+    if (query?.includes("BUDA")) {
+      filter = { applicationNo: query };
+    } else {
+      filter = {
+        "applicantInfo.applicantDetails.0.name": {
+          $regex: query,
+          $options: "i",
+        },
+      };
+    }
+
+    // TODO: owner name is pending
+
+    console.log(filter, "REGEX Search application");
+
+    const searchResultOfDraftApp = await draftApplicationCollection.findOne(
+      filter
+    );
+
+    if (!searchResultOfDraftApp) {
+      const searchResultOfSubmitApp = await submitApplicationCollection.findOne(
+        filter
+      );
+
+      if (!searchResultOfSubmitApp) {
+        const searchResultOfApproveApp = await approvedCollection.findOne(
+          filter
+        );
+
+        if (!searchResultOfApproveApp) {
+          const searchResultOfShortfallApp = await shortfallCollection.findOne(
+            filter
+          );
+          console.log(searchResultOfShortfallApp);
+          if (!searchResultOfShortfallApp) {
+            console.log("Asci");
+            return res.send({ result: searchResultOfShortfallApp });
+          }
+          return res.send({ result: searchResultOfShortfallApp });
+        }
+        return res.send({ result: searchResultOfApproveApp });
+      }
+
+      return res.send({ result: searchResultOfSubmitApp });
+    }
+    res.send({ result: searchResultOfDraftApp });
   });
 
   //get users draft application
