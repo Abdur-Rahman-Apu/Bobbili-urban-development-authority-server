@@ -814,45 +814,35 @@ async function run() {
     res.send(result);
   });
 
-  // get searched application
-  app.get("/getSearchedApplication", async (req, res) => {
+  // get searched application by app no
+  app.get("/getSearchedApplicationByAppNo", async (req, res) => {
     const query = req.query.search;
 
     console.log(query);
-    let filter;
-    if (query?.includes("BUDA")) {
-      filter = { applicationNo: query };
-    } else {
-      filter = {
-        "applicantInfo.applicantDetails.0.name": {
-          $regex: query,
-          $options: "i",
-        },
-      };
-    }
+    const filter = { applicationNo: query };
 
     // TODO: owner name is pending
 
     console.log(filter, "REGEX Search application");
 
-    const searchResultOfDraftApp = await draftApplicationCollection.findOne(
-      filter
-    );
+    const searchResultOfDraftApp = await draftApplicationCollection
+      .find(filter)
+      .toArray();
 
     if (!searchResultOfDraftApp) {
-      const searchResultOfSubmitApp = await submitApplicationCollection.findOne(
-        filter
-      );
+      const searchResultOfSubmitApp = await submitApplicationCollection
+        .find(filter)
+        .toArray();
 
       if (!searchResultOfSubmitApp) {
-        const searchResultOfApproveApp = await approvedCollection.findOne(
-          filter
-        );
+        const searchResultOfApproveApp = await approvedCollection
+          .find(filter)
+          .toArray();
 
         if (!searchResultOfApproveApp) {
-          const searchResultOfShortfallApp = await shortfallCollection.findOne(
-            filter
-          );
+          const searchResultOfShortfallApp = await shortfallCollection
+            .find(filter)
+            .toArray();
           console.log(searchResultOfShortfallApp);
           if (!searchResultOfShortfallApp) {
             console.log("Asci");
@@ -866,6 +856,44 @@ async function run() {
       return res.send({ result: searchResultOfSubmitApp });
     }
     res.send({ result: searchResultOfDraftApp });
+  });
+
+  // get searched application by owner name
+
+  app.get("/getSearchedApplicationByOwnerName", async (req, res) => {
+    const query = req.query.search;
+
+    const filter = {
+      "applicantInfo.applicantDetails.0.name": {
+        $regex: query,
+        $options: "i",
+      },
+    };
+
+    const searchResultOfDraftApp = await draftApplicationCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfSubmitApp = await submitApplicationCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfApproveApp = await approvedCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfShortfallApp = await shortfallCollection
+      .find(filter)
+      .toArray();
+
+    const searchResult = [
+      ...searchResultOfDraftApp,
+      ...searchResultOfSubmitApp,
+      ...searchResultOfApproveApp,
+      ...searchResultOfShortfallApp,
+    ];
+
+    res.send({ result: searchResult });
   });
 
   //get users draft application
