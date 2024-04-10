@@ -816,12 +816,10 @@ async function run() {
 
   // get searched application by app no
   app.get("/getSearchedApplicationByAppNo", async (req, res) => {
-    const query = req.query.search;
+    console.log(req.query.search);
+    const { searchValue, page } = JSON.parse(req.query.search);
 
-    console.log(query);
-    const filter = { applicationNo: query };
-
-    // TODO: owner name is pending
+    const filter = { applicationNo: searchValue };
 
     console.log(filter, "REGEX Search application");
 
@@ -829,7 +827,7 @@ async function run() {
       .find(filter)
       .toArray();
 
-    if (!searchResultOfDraftApp) {
+    if (!searchResultOfDraftApp && page === "applicationSearch") {
       const searchResultOfSubmitApp = await submitApplicationCollection
         .find(filter)
         .toArray();
@@ -861,11 +859,11 @@ async function run() {
   // get searched application by owner name
 
   app.get("/getSearchedApplicationByOwnerName", async (req, res) => {
-    const query = req.query.search;
+    const { searchValue, page } = JSON.parse(req.query.search);
 
     const filter = {
       "applicantInfo.applicantDetails.0.name": {
-        $regex: query,
+        $regex: searchValue,
         $options: "i",
       },
     };
@@ -874,26 +872,30 @@ async function run() {
       .find(filter)
       .toArray();
 
-    const searchResultOfSubmitApp = await submitApplicationCollection
-      .find(filter)
-      .toArray();
+    if (page === "applicationSearch") {
+      const searchResultOfSubmitApp = await submitApplicationCollection
+        .find(filter)
+        .toArray();
 
-    const searchResultOfApproveApp = await approvedCollection
-      .find(filter)
-      .toArray();
+      const searchResultOfApproveApp = await approvedCollection
+        .find(filter)
+        .toArray();
 
-    const searchResultOfShortfallApp = await shortfallCollection
-      .find(filter)
-      .toArray();
+      const searchResultOfShortfallApp = await shortfallCollection
+        .find(filter)
+        .toArray();
 
-    const searchResult = [
-      ...searchResultOfDraftApp,
-      ...searchResultOfSubmitApp,
-      ...searchResultOfApproveApp,
-      ...searchResultOfShortfallApp,
-    ];
+      const searchResult = [
+        ...searchResultOfDraftApp,
+        ...searchResultOfSubmitApp,
+        ...searchResultOfApproveApp,
+        ...searchResultOfShortfallApp,
+      ];
 
-    res.send({ result: searchResult });
+      return res.send({ result: searchResult });
+    } else {
+      return res.send({ result: searchResultOfDraftApp });
+    }
   });
 
   //get users draft application
