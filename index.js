@@ -620,7 +620,7 @@ async function run() {
     socket.on("login", (data) => {
       console.log(data, "DATA");
       const findIndex = users.findIndex((user) => user.id === data.id);
-      console.log(findIndex, "FIND INDEX");
+      console.log(findIndex, "FIND INDEX during connection");
       if (findIndex !== -1) {
         const userData = users[findIndex];
         userData.socketId = socket.id;
@@ -684,7 +684,7 @@ async function run() {
       console.log("Client disconnected", socket.id);
       const findIndex = users.findIndex((user) => user.socketId === socket.id);
 
-      console.log("Find index", findIndex);
+      console.log("Find index during disconnect", findIndex);
       if (findIndex !== -1) {
         // users.splice(findIndex, 1);
         console.log(users[findIndex], "Disconnected");
@@ -2468,10 +2468,11 @@ async function run() {
 
         const allPsInfo = allPS.map((item) => {
           return {
-            id: item?._id,
+            id: item?._id.toString(),
             district: item?.district,
             mandal: item?.mandal,
             gramaPanchayat: item?.gramaPanchayat,
+            village: item?.village,
             name: item?.name,
             contact: item?.phone,
           };
@@ -2485,9 +2486,15 @@ async function run() {
               eachPs?.gramaPanchayat,
           };
 
+          console.log(
+            queryForAppCame,
+            { psId: eachPs?.id.toString() },
+            "Verification status"
+          );
+
           const applicationNotVerified = await submitApplicationCollection
             .find(queryForAppCame)
-            .toArray()?.length;
+            .toArray();
 
           const approved = await approvedCollection
             .find({ psId: eachPs?.id })
@@ -2499,6 +2506,15 @@ async function run() {
             .find({ psId: eachPs?.id })
             .toArray();
 
+          console.log("Approved length", approved?.length);
+          console.log("Shortfall length", shortfall?.length);
+          console.log("rejected length", rejected?.length);
+          console.log(
+            "applicationNotVerified length",
+            applicationNotVerified?.length
+          );
+          console.log("PS NAME", eachPs?.name);
+
           const applicationVerified =
             approved?.length + shortfall?.length + rejected?.length;
 
@@ -2506,14 +2522,14 @@ async function run() {
             psId: eachPs?.id,
             psName: eachPs?.name,
             psContact: eachPs?.contact,
-            assigned: applicationNotVerified + applicationVerified,
+            assigned: applicationNotVerified?.length + applicationVerified,
             verified: applicationVerified,
-            pending: applicationNotVerified,
+            pending: applicationNotVerified?.length,
           };
         });
 
         Promise.all(verificationStatus).then((result) => {
-          console.log(result);
+          console.log(result, "verification result");
           res.send(result);
         });
       }
