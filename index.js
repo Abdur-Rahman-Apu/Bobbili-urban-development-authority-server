@@ -846,24 +846,32 @@ async function run() {
       .find(filter)
       .toArray();
 
-    if (!searchResultOfDraftApp && page === "applicationSearch") {
+    if (!searchResultOfDraftApp.length && page === "applicationSearch") {
       const searchResultOfSubmitApp = await submitApplicationCollection
         .find(filter)
         .toArray();
 
-      if (!searchResultOfSubmitApp) {
+      if (!searchResultOfSubmitApp.length) {
         const searchResultOfApproveApp = await approvedCollection
           .find(filter)
           .toArray();
 
-        if (!searchResultOfApproveApp) {
+        if (!searchResultOfApproveApp.length) {
           const searchResultOfShortfallApp = await shortfallCollection
             .find(filter)
             .toArray();
           console.log(searchResultOfShortfallApp);
-          if (!searchResultOfShortfallApp) {
+          if (!searchResultOfShortfallApp.length) {
             console.log("Asci");
-            return res.send({ result: searchResultOfShortfallApp });
+
+            const searchResultOfRejectedApp = await rejectedCollection
+              .find(filter)
+              .toArray();
+
+            if (!searchResultOfRejectedApp.length) {
+              return res.send({ result: [] });
+            }
+            return res.send({ result: searchResultOfRejectedApp });
           }
           return res.send({ result: searchResultOfShortfallApp });
         }
@@ -904,17 +912,107 @@ async function run() {
         .find(filter)
         .toArray();
 
+      const searchResultOfRejectedApp = await rejectedCollection
+        .find(filter)
+        .toArray();
+
       const searchResult = [
         ...searchResultOfDraftApp,
         ...searchResultOfSubmitApp,
         ...searchResultOfApproveApp,
         ...searchResultOfShortfallApp,
+        ...searchResultOfRejectedApp,
       ];
 
       return res.send({ result: searchResult });
     } else {
       return res.send({ result: searchResultOfDraftApp });
     }
+  });
+
+  // get searched applications for ps by applicationNo
+  app.get("/getSearchedApplicationForPsByAppNo", async (req, res) => {
+    const { gramaPanchayat, searchValue } = JSON.parse(req.query.search);
+
+    const query = {
+      applicationNo: searchValue,
+      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+    };
+
+    console.log(query, "APP no");
+
+    const searchResultOfSubmitApp = await submitApplicationCollection
+      .find(query)
+      .toArray();
+    console.log(searchResultOfSubmitApp);
+    if (!searchResultOfSubmitApp.length) {
+      const searchResultOfApproveApp = await approvedCollection
+        .find(query)
+        .toArray();
+
+      console.log(searchResultOfApproveApp);
+
+      if (!searchResultOfApproveApp.length) {
+        const searchResultOfShortfallApp = await shortfallCollection
+          .find(query)
+          .toArray();
+
+        if (!searchResultOfShortfallApp.length) {
+          const searchResultOfRejectedApp = await rejectedCollection
+            .find(query)
+            .toArray();
+
+          if (!searchResultOfRejectedApp.length) {
+            return res.send({ result: [] });
+          }
+
+          return res.send({ result: searchResultOfRejectedApp });
+        }
+
+        return res.send({ result: searchResultOfShortfallApp });
+      }
+      return res.send({ result: searchResultOfApproveApp });
+    } else {
+      return res.send({ result: searchResultOfSubmitApp });
+    }
+  });
+
+  // get searched applications for ps by owner name
+  app.get("/getSearchedApplicationForPsByOwnerName", async (req, res) => {
+    const { gramaPanchayat, searchValue } = JSON.parse(req.query.search);
+
+    const filter = {
+      "applicantInfo.applicantDetails.0.name": {
+        $regex: searchValue,
+        $options: "i",
+      },
+      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+    };
+
+    const searchResultOfSubmitApp = await submitApplicationCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfApproveApp = await approvedCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfShortfallApp = await shortfallCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfRejectedApp = await rejectedCollection
+      .find(filter)
+      .toArray();
+
+    const searchResult = [
+      ...searchResultOfSubmitApp,
+      ...searchResultOfApproveApp,
+      ...searchResultOfShortfallApp,
+      ...searchResultOfRejectedApp,
+    ];
+
+    return res.send({ result: searchResult });
   });
 
   //get users draft application
