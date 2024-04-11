@@ -474,6 +474,36 @@ async function run() {
     res.send(result);
   });
 
+  // get ps applications
+
+  app.get("/getPsApplications", async (req, res) => {
+    const gramaPanchayat = JSON.parse(req.query.gramaPanchayat);
+
+    const filter = {
+      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+    };
+
+    const searchResultOfSubmitApp = await submitApplicationCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfApproveApp = await approvedCollection
+      .find(filter)
+      .toArray();
+
+    const searchResultOfShortfallApp = await shortfallCollection
+      .find(filter)
+      .toArray();
+
+    const searchResult = [
+      ...searchResultOfSubmitApp,
+      ...searchResultOfApproveApp,
+      ...searchResultOfShortfallApp,
+    ];
+
+    res.send({ result: searchResult });
+  });
+
   // chat box related api
   app.post("/messageRequest", async (req, res) => {
     const data = req.body;
@@ -778,17 +808,6 @@ async function run() {
 
   // get all users
   app.get("/allUser", async (req, res) => {
-    // jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
-    //   if (err) {
-    //     console.log("object");
-    //     res.status(400).send({ message: "Unauthorized access" });
-    //   } else {
-    //     const cursor = userCollection.find({});
-    //     const result = await cursor.toArray();
-    //     res.send(result);
-    //   }
-    // });
-
     const cursor = userCollection.find({});
     const result = await cursor.toArray();
     res.send(result);
@@ -944,6 +963,14 @@ async function run() {
 
     if (page.toLowerCase() === "outward") {
       result =
+        (await shortfallCollection.findOne({ applicationNo: appNo })) ||
+        (await approvedCollection.findOne({ applicationNo: appNo })) ||
+        (await rejectedCollection.findOne({ applicationNo: appNo }));
+    }
+
+    if (page === "searchApplicationByPs") {
+      result =
+        (await submitApplicationCollection.findOne({ applicationNo: appNo })) ||
         (await shortfallCollection.findOne({ applicationNo: appNo })) ||
         (await approvedCollection.findOne({ applicationNo: appNo })) ||
         (await rejectedCollection.findOne({ applicationNo: appNo }));
@@ -1322,44 +1349,6 @@ async function run() {
     console.log(query, "USER INFO");
 
     if (role === "ltp" || role === "ps") {
-      if (role === "ps") {
-        // const findPsInfo = await userCollection.findOne({
-        //   _id: new ObjectId(userInfo?._id),
-        // });
-        // console.log(findPsInfo);
-        // query = {
-        //   "buildingInfo.generalInformation.district": findPsInfo.district,
-        //   "buildingInfo.generalInformation.mandal": findPsInfo.mandal,
-        //   "buildingInfo.generalInformation.gramaPanchayat":
-        //     findPsInfo?.gramaPanchayat,
-        // };
-      }
-
-      if (role === "ltp") {
-      }
-
-      // const total =
-      //   totalRejectedApplications.length +
-      //   totalApprovedApplications.length +
-      //   totalShortfallApplications.length;
-
-      // console.log(totalApprovedApplications, "APPROVED");
-      // console.log(totalShortfallApplications, "SHORTFALL");
-
-      // console.log(total, "TOTAL");
-
-      // const rejectedAppCharges = extractCharges(totalRejectedApplications);
-      // const approvedAppCharges = extractCharges(totalApprovedApplications);
-      // const shortfallAppCharges = extractCharges(totalShortfallApplications);
-
-      // const charges = sumOfAllAppCharges(
-      //   rejectedAppCharges,
-      //   approvedAppCharges,
-      //   shortfallAppCharges
-      // );
-
-      // let result;
-
       console.log("INSIDE LTP OR PS");
 
       if (role === "ltp") {
