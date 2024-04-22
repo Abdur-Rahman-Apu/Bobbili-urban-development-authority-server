@@ -8,7 +8,7 @@ const { DateTime } = require("luxon");
 const fetch = require("node-fetch");
 // import fetch from "node-fetch";
 const axios = require("axios");
-const { Juspay, APIError } = require("expresscheckout-nodejs");
+
 app.use(cors());
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -39,6 +39,32 @@ const jwt = require("jsonwebtoken");
 const { google } = require("googleapis");
 const path = require("path");
 const fs = require("fs");
+
+// payment gateway
+
+const { Juspay, APIError } = require("expresscheckout-nodejs");
+
+const SANDBOX_BASE_URL = "https://smartgatewayuat.hdfcbank.com";
+const PRODUCTION_BASE_URL = "https://smartgateway.hdfcbank.com";
+
+const config = require("./config.json");
+const publicKey = fs.readFileSync(config.PUBLIC_KEY_PATH);
+const privateKey = fs.readFileSync(config.PRIVATE_KEY_PATH);
+const paymentPageClientId = config.PAYMENT_PAGE_CLIENT_ID; // used in orderSession request
+
+/*
+Juspay.customLogger = Juspay.silentLogger
+*/
+const juspay = new Juspay({
+  merchantId: config.MERCHANT_ID,
+  baseUrl: SANDBOX_BASE_URL,
+  jweAuth: {
+    keyId: config.KEY_UUID,
+    publicKey,
+    privateKey,
+  },
+});
+
 const apiKeys = require("./apikeys.json");
 
 const SCOPE = ["https://www.googleapis.com/auth/drive"];
@@ -365,6 +391,176 @@ async function run() {
   const forgotPassOtpCollection = client
     .db("Construction-Application")
     .collection("forgotPasswordOtp");
+
+  // payment gateway
+
+  function generateUniqueID() {
+    const date = new Date();
+    const timestamp = Date.now(); // Current timestamp
+    const randomComponent = Math.floor(Math.random() * 1000000); // Random number
+    const uniqueID = `order_${timestamp}_${randomComponent}_${date.getDate()}_${date.getMonth()}_${date.getFullYear()}`;
+
+    return uniqueID;
+  }
+
+  // block:start:session-function
+  app.post("/initiateJuspayPayment", async (req, res) => {
+    const data = req.body;
+    console.log(data, "DATA");
+    const orderId = generateUniqueID();
+
+    // makes return url
+    const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
+
+    console.log(returnUrl, "return URL");
+    try {
+      const sessionResponse = await juspay.orderSession.create({
+        order_id: orderId,
+        amount: data?.amount,
+        payment_page_client_id: paymentPageClientId, // [required] shared with you, in config.json
+        customer_id: "hdfc-testing-customer-one", // [optional] your customer id here
+        action: "paymentPage", // [optional] default is paymentPage
+        return_url: returnUrl, // [optional] default is value given from dashboard
+        currency: "INR", // [optional] default is INR
+        customer_email: data?.customer_email,
+        customer_phone: data?.customer_phone,
+        first_name: data?.first_name,
+        description: data?.description,
+      });
+
+      const filterData = JSON.stringify({
+        userId: data?.userId,
+        oldApplicationNo: data?.applicationNo,
+      });
+
+      console.log(filterData, "FilterData");
+
+      const response = await axios.patch(
+        `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
+        { onlinePaymentStatus: { order_id: orderId } }
+      );
+
+      console.log(response, "response");
+
+      // removes http field from response, typically you won't send entire structure as response
+      return res.json(makeJuspayResponse(sessionResponse));
+    } catch (error) {
+      if (error instanceof APIError) {
+        console.log(error.message);
+        // handle errors comming from juspay's api
+        return res.json(makeError(error.message));
+      }
+      return res.json(makeError());
+    }
+  });
+  // block:end:session-function
+
+  // block:start:order-status-function
+  app.post("/handleJuspayResponse", async (req, res) => {
+    const orderId = req.body.order_id || req.body.orderId;
+    console.log(orderId, "order id");
+    const from = req?.query?.req;
+
+    if (orderId == undefined) {
+      return res.json(makeError("order_id not present or cannot be empty"));
+    }
+
+    try {
+      const statusResponse = await juspay.order.status(orderId);
+      const orderStatus = statusResponse.status;
+
+      let message = "";
+      switch (orderStatus) {
+        case "CHARGED":
+          message = "order payment done successfully";
+          break;
+        case "PENDING":
+        case "PENDING_VBV":
+          message = "order payment pending";
+          break;
+        case "AUTHORIZATION_FAILED":
+          message = "order payment authorization failed";
+          break;
+        case "AUTHENTICATION_FAILED":
+          message = "order payment authentication failed";
+          break;
+        default:
+          message = "order status " + orderStatus;
+          break;
+      }
+
+      console.log(message);
+
+      const response = await axios.patch(
+        `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
+        { ...statusResponse, message }
+      );
+
+      // removes http field from response, typically you won't send entire structure as response
+
+      if (from) {
+        return res.send(makeJuspayResponse(statusResponse));
+      }
+      res.redirect(
+        `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
+      );
+    } catch (error) {
+      if (error instanceof APIError) {
+        // handle errors comming from juspay's api,
+        return res.json(makeError(error.message));
+      }
+      return res.json(makeError());
+    }
+  });
+
+  // Utitlity functions
+  function makeError(message) {
+    return {
+      message: message || "Something went wrong",
+    };
+  }
+
+  function makeJuspayResponse(successRspFromJuspay) {
+    if (successRspFromJuspay == undefined) return successRspFromJuspay;
+    if (successRspFromJuspay.http != undefined)
+      delete successRspFromJuspay.http;
+    return successRspFromJuspay;
+  }
+
+  app.patch("/updatePaymentStatus", async (req, res) => {
+    const orderId = req.query.orderId;
+
+    const query = {
+      "onlinePaymentStatus.order_id": orderId,
+    };
+
+    const updateDoc = {
+      $set: { onlinePaymentStatus: req.body },
+    };
+
+    const result = await draftApplicationCollection.updateOne(query, updateDoc);
+
+    res.send(result);
+  });
+
+  app.get("/paymentStatus", async (req, res) => {
+    const orderId = req.query.orderId;
+    console.log(orderId);
+    const query = {
+      "onlinePaymentStatus.order_id": orderId,
+    };
+
+    const response = await axios.post(
+      `http://localhost:5000/handleJuspayResponse?req=another`,
+      { orderId }
+    );
+
+    console.log(response, "response");
+
+    const result = await draftApplicationCollection.findOne(query);
+
+    res.send(result);
+  });
 
   // visitor count api
   app.get("/getVisitorCount", async (req, res) => {
