@@ -410,7 +410,8 @@ async function run() {
     const orderId = generateUniqueID();
 
     // makes return url
-    const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
+    // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
+    const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse`;
 
     console.log(returnUrl, "return URL");
     try {
