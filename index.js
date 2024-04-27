@@ -503,7 +503,7 @@ async function run() {
         return res.send(makeJuspayResponse(statusResponse));
       }
       res.redirect(
-        `https://bobbili-urban-development-authority.netlify.app//dashboard/draftApplication/paymentStatus/${orderId}`
+        `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
       );
     } catch (error) {
       if (error instanceof APIError) {
