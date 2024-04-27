@@ -436,7 +436,7 @@ async function run() {
       console.log(filterData, "FilterData");
 
       const response = await axios.patch(
-        `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
+        `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
         { onlinePaymentStatus: { order_id: orderId } }
       );
 
@@ -492,7 +492,7 @@ async function run() {
       console.log(message);
 
       const response = await axios.patch(
-        `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
+        `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
         { ...statusResponse, message }
       );
 
@@ -551,7 +551,7 @@ async function run() {
     };
 
     const response = await axios.post(
-      `http://localhost:5000/handleJuspayResponse?req=another`,
+      `https://residential-building.onrender.com/handleJuspayResponse?req=another`,
       { orderId }
     );
 
