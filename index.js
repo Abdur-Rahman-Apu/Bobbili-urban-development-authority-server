@@ -468,6 +468,7 @@ async function run() {
 
     try {
       const statusResponse = await juspay.order.status(orderId);
+      console.log(statusResponse, "statusResponse");
       const orderStatus = statusResponse.status;
 
       let message = "";
