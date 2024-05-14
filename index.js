@@ -413,8 +413,8 @@ async function run() {
 
     // makes return url
     // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
-    // const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
-    const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
+    const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
+    // const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
 
     console.log(returnUrl, "return URL");
     try {
@@ -439,14 +439,14 @@ async function run() {
 
       console.log(filterData, "FilterData");
 
-      // const response = await axios.patch(
-      //   `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
-      //   { onlinePaymentStatus: { order_id: orderId } }
-      // );
       const response = await axios.patch(
-        `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
+        `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
         { onlinePaymentStatus: { order_id: orderId } }
       );
+      // const response = await axios.patch(
+      //   `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
+      //   { onlinePaymentStatus: { order_id: orderId } }
+      // );
 
       // console.log(response, "response");
 
@@ -511,14 +511,14 @@ async function run() {
 
       console.log(message);
 
-      // const response = await axios.patch(
-      //   `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
-      //   { ...statusResponse, message }
-      // );
       const response = await axios.patch(
-        `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
+        `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
         { ...statusResponse, message }
       );
+      // const response = await axios.patch(
+      //   `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
+      //   { ...statusResponse, message }
+      // );
 
       // removes http field from response, typically you won't send entire structure as response
 
@@ -531,12 +531,18 @@ async function run() {
       if (page?.toLowerCase() === "dashboard") {
         console.log("HERE");
         res.redirect(
-          `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
+          `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
         );
+        // res.redirect(
+        //   `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
+        // );
       } else if (page?.toLowerCase() === "home") {
         res.redirect(
-          `http://localhost:5173/onlinePayment/paymentStatus/${orderId}`
+          `https://bobbili-urban-development-authority.netlify.app/onlinePayment/paymentStatus/${orderId}`
         );
+        // res.redirect(
+        //   `http://localhost:5173/onlinePayment/paymentStatus/${orderId}`
+        // );
       }
     } catch (error) {
       console.log(error, "ERROR");
@@ -619,14 +625,14 @@ async function run() {
       "onlinePaymentStatus.order_id": orderId,
     };
 
-    // const response = await axios.post(
-    //   `https://residential-building.onrender.com/handleJuspayResponse?req=another`,
-    //   { orderId }
-    // );
     const response = await axios.post(
-      `http://localhost:5000/handleJuspayResponse?req=another`,
+      `https://residential-building.onrender.com/handleJuspayResponse?req=another`,
       { orderId }
     );
+    // const response = await axios.post(
+    //   `http://localhost:5000/handleJuspayResponse?req=another`,
+    //   { orderId }
+    // );
 
     // console.log(response, "response");
 
