@@ -448,7 +448,7 @@ async function run() {
       //   { onlinePaymentStatus: { order_id: orderId } }
       // );
 
-      // console.log(response, "response");
+      console.log(response, "response");
 
       // removes http field from response, typically you won't send entire structure as response
       return res.json(makeJuspayResponse(sessionResponse));
