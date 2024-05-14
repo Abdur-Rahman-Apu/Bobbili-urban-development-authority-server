@@ -398,7 +398,9 @@ async function run() {
     const date = new Date();
     const timestamp = Date.now(); // Current timestamp
     const randomComponent = Math.floor(Math.random() * 1000000); // Random number
-    const uniqueID = `order_${timestamp}_${randomComponent}_${date.getDate()}_${date.getMonth()}_${date.getFullYear()}`;
+    const uniqueID = `order_${timestamp}_${randomComponent}_${date.getDate()}_${
+      date.getMonth() + 1
+    }_${date.getFullYear()}`;
 
     return uniqueID;
   }
@@ -411,7 +413,8 @@ async function run() {
 
     // makes return url
     // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
-    const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse`;
+    // const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
+    const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
 
     console.log(returnUrl, "return URL");
     try {
@@ -436,12 +439,16 @@ async function run() {
 
       console.log(filterData, "FilterData");
 
+      // const response = await axios.patch(
+      //   `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
+      //   { onlinePaymentStatus: { order_id: orderId } }
+      // );
       const response = await axios.patch(
-        `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
+        `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
         { onlinePaymentStatus: { order_id: orderId } }
       );
 
-      console.log(response, "response");
+      // console.log(response, "response");
 
       // removes http field from response, typically you won't send entire structure as response
       return res.json(makeJuspayResponse(sessionResponse));
@@ -461,6 +468,17 @@ async function run() {
     const orderId = req.body.order_id || req.body.orderId;
     console.log(orderId, "order id");
     const from = req?.query?.req;
+    const page = req?.body?.page ?? req?.query?.page;
+
+    // console.log(req, "request");
+    console.log(req.query, "QUERY");
+
+    // console.log(
+    //   req.protocol + "://" + req.get("host") + req.originalUrl,
+    //   "clientUrl"
+    // );
+    console.log(from, "from");
+    console.log(page, "page");
 
     if (orderId == undefined) {
       return res.json(makeError("order_id not present or cannot be empty"));
@@ -468,7 +486,7 @@ async function run() {
 
     try {
       const statusResponse = await juspay.order.status(orderId);
-      console.log(statusResponse, "statusResponse");
+      // console.log(statusResponse, "statusResponse");
       const orderStatus = statusResponse.status;
 
       let message = "";
@@ -493,22 +511,38 @@ async function run() {
 
       console.log(message);
 
+      // const response = await axios.patch(
+      //   `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
+      //   { ...statusResponse, message }
+      // );
       const response = await axios.patch(
-        `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
+        `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
         { ...statusResponse, message }
       );
 
       // removes http field from response, typically you won't send entire structure as response
 
-      if (from) {
+      if (from?.toLowerCase() === "another") {
         return res.send(makeJuspayResponse(statusResponse));
       }
-      res.redirect(
-        `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
-      );
+      // res.redirect(
+      //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
+      // );
+      if (page?.toLowerCase() === "dashboard") {
+        console.log("HERE");
+        res.redirect(
+          `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
+        );
+      } else if (page?.toLowerCase() === "home") {
+        res.redirect(
+          `http://localhost:5173/onlinePayment/paymentStatus/${orderId}`
+        );
+      }
     } catch (error) {
+      console.log(error, "ERROR");
       if (error instanceof APIError) {
         // handle errors comming from juspay's api,
+        console.log(error?.message, "Error message");
         return res.json(makeError(error.message));
       }
       return res.json(makeError());
@@ -536,8 +570,41 @@ async function run() {
       "onlinePaymentStatus.order_id": orderId,
     };
 
+    const {
+      message,
+      customer_email,
+      customer_phone,
+      customer_id,
+      status,
+      id,
+      amount,
+      order_id,
+      date_created,
+      payment_method,
+      txn_id,
+      txn_uuid,
+    } = req.body;
+    const paymentData = {
+      message: req.body,
+    };
+
     const updateDoc = {
-      $set: { onlinePaymentStatus: req.body },
+      $set: {
+        onlinePaymentStatus: {
+          message,
+          customer_email,
+          customer_phone,
+          customer_id,
+          status,
+          id,
+          amount,
+          order_id,
+          date_created,
+          payment_method,
+          txn_id,
+          txn_uuid,
+        },
+      },
     };
 
     const result = await draftApplicationCollection.updateOne(query, updateDoc);
@@ -552,12 +619,16 @@ async function run() {
       "onlinePaymentStatus.order_id": orderId,
     };
 
+    // const response = await axios.post(
+    //   `https://residential-building.onrender.com/handleJuspayResponse?req=another`,
+    //   { orderId }
+    // );
     const response = await axios.post(
-      `https://residential-building.onrender.com/handleJuspayResponse?req=another`,
+      `http://localhost:5000/handleJuspayResponse?req=another`,
       { orderId }
     );
 
-    console.log(response, "response");
+    // console.log(response, "response");
 
     const result = await draftApplicationCollection.findOne(query);
 
