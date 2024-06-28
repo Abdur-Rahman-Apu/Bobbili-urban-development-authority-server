@@ -409,56 +409,81 @@ async function run() {
   app.post("/initiateJuspayPayment", async (req, res) => {
     const data = req.body;
     console.log(data, "DATA");
-    const orderId = generateUniqueID();
 
-    // makes return url
-    // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
-    const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
-    // const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
+    const result = await draftApplicationCollection.findOne({
+      applicationNo: data?.applicationNo,
+    });
 
-    console.log(returnUrl, "return URL");
-    try {
-      const sessionResponse = await juspay.orderSession.create({
-        order_id: orderId,
-        amount: data?.amount,
-        payment_page_client_id: paymentPageClientId, // [required] shared with you, in config.json
-        customer_id: "hdfc-testing-customer-one", // [optional] your customer id here
-        action: "paymentPage", // [optional] default is paymentPage
-        return_url: returnUrl, // [optional] default is value given from dashboard
-        currency: "INR", // [optional] default is INR
-        customer_email: data?.customer_email,
-        customer_phone: data?.customer_phone,
-        first_name: data?.first_name,
-        description: data?.description,
-      });
+    console.log("Result of injuspay", result);
 
-      const filterData = JSON.stringify({
-        userId: data?.userId,
-        oldApplicationNo: data?.applicationNo,
-      });
+    if (result) {
+      const expectedAmount = Number(result?.onlinePaymentStatus?.amount);
 
-      console.log(filterData, "FilterData");
+      if (expectedAmount === Number(data?.amount)) {
+        const orderId = generateUniqueID();
 
-      const response = await axios.patch(
-        `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
-        { onlinePaymentStatus: { order_id: orderId } }
-      );
-      // const response = await axios.patch(
-      //   `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
-      //   { onlinePaymentStatus: { order_id: orderId } }
-      // );
+        // makes return url
+        // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
+        // const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
+        const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
 
-      console.log(response, "response");
+        console.log(returnUrl, "return URL");
+        try {
+          const sessionResponse = await juspay.orderSession.create({
+            order_id: orderId,
+            amount: data?.amount,
+            payment_page_client_id: paymentPageClientId, // [required] shared with you, in config.json
+            customer_id: "hdfc-testing-customer-one", // [optional] your customer id here
+            action: "paymentPage", // [optional] default is paymentPage
+            return_url: returnUrl, // [optional] default is value given from dashboard
+            currency: "INR", // [optional] default is INR
+            customer_email: data?.customer_email,
+            customer_phone: data?.customer_phone,
+            first_name: data?.first_name,
+            description: data?.description,
+          });
 
-      // removes http field from response, typically you won't send entire structure as response
-      return res.json(makeJuspayResponse(sessionResponse));
-    } catch (error) {
-      if (error instanceof APIError) {
-        console.log(error.message);
-        // handle errors comming from juspay's api
-        return res.json(makeError(error.message));
+          const filterData = JSON.stringify({
+            userId: data?.userId,
+            oldApplicationNo: data?.applicationNo,
+          });
+
+          console.log(filterData, "FilterData");
+
+          const response = await axios.patch(
+            `https://residential-building.onrender.com/updateDraftApplicationData?filterData=${filterData}`,
+            {
+              onlinePaymentStatus: {
+                order_id: orderId,
+                amount: data?.amount,
+                message: "starting payment",
+              },
+            }
+          );
+          // const response = await axios.patch(
+          //   `http://localhost:5000/updateDraftApplicationData?filterData=${filterData}`,
+          //   { onlinePaymentStatus: { order_id: orderId } }
+          // );
+
+          console.log(response, "response");
+
+          // removes http field from response, typically you won't send entire structure as response
+          return res.json(makeJuspayResponse(sessionResponse));
+        } catch (error) {
+          if (error instanceof APIError) {
+            console.log(error.message);
+            // handle errors comming from juspay's api
+            return res.json(makeError(error.message));
+          }
+          return res.json(makeError());
+        }
+      } else {
+        res.status(404).send({ message: "Payment failed" });
       }
-      return res.json(makeError());
+    } else {
+      res
+        .status(404)
+        .send({ message: "Please provide correct application no" });
     }
   });
   // block:end:session-function
@@ -511,10 +536,6 @@ async function run() {
 
       console.log(message);
 
-      const response = await axios.patch(
-        `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
-        { ...statusResponse, message }
-      );
       // const response = await axios.patch(
       //   `http://localhost:5000/updatePaymentStatus?orderId=${orderId}`,
       //   { ...statusResponse, message }
@@ -523,16 +544,41 @@ async function run() {
       // removes http field from response, typically you won't send entire structure as response
 
       if (from?.toLowerCase() === "another") {
+        const response = await axios.patch(
+          `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
+          { ...statusResponse, message }
+        );
         return res.send(makeJuspayResponse(statusResponse));
       }
       // res.redirect(
       //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
       // );
+
+      // if page = dashboard
       if (page?.toLowerCase() === "dashboard") {
         console.log("HERE");
-        res.redirect(
-          `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
-        );
+
+        if (orderStatus === "NEW") {
+          res.redirect(
+            `http://localhost:5173/dashboard/draftApplication/payment`
+          );
+          // res.redirect(
+          //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/payment`
+          // );
+        } else {
+          const response = await axios.patch(
+            `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
+            { ...statusResponse, message }
+          );
+
+          res.redirect(
+            `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
+          );
+          // res.redirect(
+          //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
+          // );
+        }
+
         // res.redirect(
         //   `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
         // );
@@ -568,6 +614,26 @@ async function run() {
       delete successRspFromJuspay.http;
     return successRspFromJuspay;
   }
+
+  app.patch("/storePaymentInfo", verifyToken, async (req, res) => {
+    const { applicationNo, ...paymentInfo } = req.body;
+
+    console.log(req.body, "Query");
+    const query = { applicationNo };
+
+    const updateDoc = {
+      $set: {
+        onlinePaymentStatus: {
+          message: "starting payment",
+          ...paymentInfo,
+        },
+      },
+    };
+
+    const result = await draftApplicationCollection.updateOne(query, updateDoc);
+
+    res.send(result);
+  });
 
   app.patch("/updatePaymentStatus", async (req, res) => {
     const orderId = req.query.orderId;
