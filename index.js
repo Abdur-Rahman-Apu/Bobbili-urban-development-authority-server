@@ -424,8 +424,8 @@ async function run() {
 
         // makes return url
         // const returnUrl = `${req.protocol}://${req.hostname}:${port}/handleJuspayResponse`;
-        // const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
-        const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
+        const returnUrl = `https://residential-building.onrender.com/handleJuspayResponse?page=${data?.page}`;
+        // const returnUrl = `http://localhost:5000/handleJuspayResponse?page=${data?.page}`;
 
         console.log(returnUrl, "return URL");
         try {
@@ -517,17 +517,20 @@ async function run() {
       let message = "";
       switch (orderStatus) {
         case "CHARGED":
-          message = "order payment done successfully";
+          message = "Successful transaction";
           break;
-        case "PENDING":
+        case "AUTHORIZING":
+          message = "Transaction status is pending from bank";
+          break;
         case "PENDING_VBV":
-          message = "order payment pending";
+          message = "order payment is pending. Authentication is in progress";
           break;
         case "AUTHORIZATION_FAILED":
-          message = "order payment authorization failed";
+          message =
+            "User completed authentication, but the bank refused the transaction. Payment is failed";
           break;
         case "AUTHENTICATION_FAILED":
-          message = "order payment authentication failed";
+          message = "User did not complete authentication. Payment is failed";
           break;
         default:
           message = "order status " + orderStatus;
@@ -559,31 +562,47 @@ async function run() {
         console.log("HERE");
 
         if (orderStatus === "NEW") {
-          res.redirect(
-            `http://localhost:5173/dashboard/draftApplication/payment`
-          );
-          // res.redirect(
-          //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/payment`
+          const application = await draftApplicationCollection.findOne({
+            "onlinePaymentStatus.order_id": orderId,
+          });
+
+          console.log(application, "application");
+
+          const query = { applicationNo: application.applicationNo };
+
+          const updateDoc = {
+            $set: {
+              onlinePaymentStatus: {},
+            },
+          };
+
+          await draftApplicationCollection.updateOne(query, updateDoc);
+
+          // return res.redirect(
+          //   `http://localhost:5173/dashboard/draftApplication/payment`
           // );
+          return res.redirect(
+            `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/payment`
+          );
         } else {
           const response = await axios.patch(
             `https://residential-building.onrender.com/updatePaymentStatus?orderId=${orderId}`,
             { ...statusResponse, message }
           );
 
-          res.redirect(
-            `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
-          );
-          // res.redirect(
-          //   `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
+          // return res.redirect(
+          //   `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
           // );
+          return res.redirect(
+            `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${orderId}`
+          );
         }
 
         // res.redirect(
         //   `http://localhost:5173/dashboard/draftApplication/paymentStatus/${orderId}`
         // );
       } else if (page?.toLowerCase() === "home") {
-        res.redirect(
+        return res.redirect(
           `https://bobbili-urban-development-authority.netlify.app/onlinePayment/paymentStatus/${orderId}`
         );
         // res.redirect(
