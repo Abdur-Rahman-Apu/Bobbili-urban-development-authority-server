@@ -651,7 +651,9 @@ async function run() {
 
     const result = await draftApplicationCollection.updateOne(query, updateDoc);
 
-    res.send(result);
+    const applicationInfo = await draftApplicationCollection.findOne(query);
+
+    res.send({ ...result, ...applicationInfo });
   });
 
   app.patch("/updatePaymentStatus", async (req, res) => {
