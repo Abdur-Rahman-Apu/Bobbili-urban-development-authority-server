@@ -839,10 +839,14 @@ async function run() {
   // get ps applications
 
   app.get("/getPsApplications", async (req, res) => {
-    const gramaPanchayat = JSON.parse(req.query.gramaPanchayat);
+    // const gramaPanchayat = JSON.parse(req.query.gramaPanchayat);
+
+    const id = JSON.parse(req.query.id);
+
+    const psInfo = await userCollection.findOne({ _id: id });
 
     const filter = {
-      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+      "buildingInfo.generalInformation.gramaPanchayat": psInfo?.gramaPanchayat,
     };
 
     const searchResultOfSubmitApp = await submitApplicationCollection
