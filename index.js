@@ -843,11 +843,17 @@ async function run() {
 
     const id = JSON.parse(req.query.id);
 
-    const psInfo = await userCollection.findOne({ _id: id });
+    console.log(id, "id in ps");
+
+    const psInfo = await userCollection.findOne({ _id: new ObjectId(id) });
+
+    console.log(psInfo, "psInfo");
 
     const filter = {
       "buildingInfo.generalInformation.gramaPanchayat": psInfo?.gramaPanchayat,
     };
+
+    console.log(filter, "filter in ps");
 
     const searchResultOfSubmitApp = await submitApplicationCollection
       .find(filter)
@@ -1298,11 +1304,13 @@ async function run() {
 
   // get searched applications for ps by applicationNo
   app.get("/getSearchedApplicationForPsByAppNo", async (req, res) => {
-    const { gramaPanchayat, searchValue } = JSON.parse(req.query.search);
+    const { psId, searchValue } = JSON.parse(req.query.search);
+
+    const psInfo = await userCollection.findOne({ _id: new ObjectId(psId) });
 
     const query = {
       applicationNo: searchValue,
-      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+      "buildingInfo.generalInformation.gramaPanchayat": psInfo?.gramaPanchayat,
     };
 
     console.log(query, "APP no");
@@ -1345,14 +1353,16 @@ async function run() {
 
   // get searched applications for ps by owner name
   app.get("/getSearchedApplicationForPsByOwnerName", async (req, res) => {
-    const { gramaPanchayat, searchValue } = JSON.parse(req.query.search);
+    const { psId, searchValue } = JSON.parse(req.query.search);
+
+    const psInfo = await userCollection.findOne({ _id: new ObjectId(psId) });
 
     const filter = {
       "applicantInfo.applicantDetails.0.name": {
         $regex: searchValue,
         $options: "i",
       },
-      "buildingInfo.generalInformation.gramaPanchayat": gramaPanchayat,
+      "buildingInfo.generalInformation.gramaPanchayat": psInfo?.gramaPanchayat,
     };
 
     const searchResultOfSubmitApp = await submitApplicationCollection
