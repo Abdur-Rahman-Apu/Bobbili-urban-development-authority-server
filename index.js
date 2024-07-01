@@ -1217,7 +1217,7 @@ async function run() {
     if (resultOfJWT?.success) {
       res.cookie("jwToken", JSON.stringify(resultOfJWT?.token), {
         maxAge: 43200000, // cookie exist time 12 hour
-        httpOnly: false,
+        httpOnly: true,
         secure: true,
         sameSite: "None",
         path: "/",
@@ -1495,6 +1495,7 @@ async function run() {
 
   //get users draft application
   app.get("/draftApplications/:id", async (req, res) => {
+    console.log(req, req.cookies, "request in draft applications");
     const id = req.params.id;
     console.log(id);
 
