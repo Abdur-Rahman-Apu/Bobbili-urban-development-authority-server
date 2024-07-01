@@ -1195,7 +1195,7 @@ async function run() {
     // set user info into the cookie
     res.cookie("loggedUser", JSON.stringify(storeInfo), {
       maxAge: 43200000, // cookie exist time 12 hour
-      // httpOnly: true,
+      httpOnly: false,
       secure: true,
       sameSite: "None",
       path: "/",
@@ -1214,7 +1214,7 @@ async function run() {
     if (resultOfJWT?.success) {
       res.cookie("jwToken", JSON.stringify(resultOfJWT?.token), {
         maxAge: 43200000, // cookie exist time 12 hour
-        // httpOnly: true,
+        httpOnly: false,
         secure: true,
         sameSite: "None",
         path: "/",
