@@ -1118,7 +1118,7 @@ async function run() {
   }
 
   function verifyToken(req, res, next) {
-    const bearerHeader = req?.headers?.authorization;
+    const bearerHeader = req?.cookies?.jwToken;
 
     console.log(bearerHeader, typeof bearerHeader, "bearer header");
 
@@ -1494,7 +1494,7 @@ async function run() {
   });
 
   //get users draft application
-  app.get("/draftApplications/:id", async (req, res) => {
+  app.get("/draftApplications/:id", verifyToken, async (req, res) => {
     console.log(req, req.cookies, "request in draft applications");
     const id = req.params.id;
     console.log(id);
