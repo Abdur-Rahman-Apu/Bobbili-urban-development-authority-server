@@ -1196,13 +1196,13 @@ async function run() {
     }
 
     // set user info into the cookie
-    res.cookie("loggedUser", JSON.stringify(storeInfo), {
-      maxAge: 43200000, // cookie exist time 12 hour
-      httpOnly: false,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-    });
+    // res.cookie("loggedUser", JSON.stringify(storeInfo), {
+    //   maxAge: 43200000, // cookie exist time 12 hour
+    //   httpOnly: false,
+    //   secure: true,
+    //   sameSite: "None",
+    //   path: "/",
+    // });
 
     // set token into the cookie
 
@@ -1231,7 +1231,7 @@ async function run() {
     );
 
     // return response to the client
-    res.send({ status: 1, message: "User found" });
+    res.send({ status: 1, message: "User found", userInfo: storeInfo });
   });
 
   // get users data
