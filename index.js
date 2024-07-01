@@ -1198,6 +1198,7 @@ async function run() {
       httpOnly: false,
       secure: true,
       sameSite: "None",
+      domain: "residential-building.onrender.com",
       path: "/",
     });
 
@@ -1217,6 +1218,7 @@ async function run() {
         httpOnly: false,
         secure: true,
         sameSite: "None",
+        domain: "residential-building.onrender.com",
         path: "/",
       });
     }
