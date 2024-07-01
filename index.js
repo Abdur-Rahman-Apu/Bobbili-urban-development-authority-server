@@ -1121,7 +1121,7 @@ async function run() {
   }
 
   function isTokenExist(req, res, next) {
-    const bearerHeader = JSON.parse(req?.cookies?.jwToken);
+    const bearerHeader = req?.cookies?.jwToken;
 
     console.log(bearerHeader, typeof bearerHeader, "bearer header");
 
@@ -1132,6 +1132,7 @@ async function run() {
       console.log("HERE");
       const bearer = bearerHeader.split(" ");
       const token = bearer[1];
+      console.log(token, "TOKEN");
       req.token = token;
       next();
     }
