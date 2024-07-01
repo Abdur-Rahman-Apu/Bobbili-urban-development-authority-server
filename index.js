@@ -652,7 +652,7 @@ async function run() {
     return successRspFromJuspay;
   }
 
-  app.patch("/storePaymentInfo", verifyToken, async (req, res) => {
+  app.patch("/storePaymentInfo", isTokenExist, async (req, res) => {
     const { applicationNo, ...paymentInfo } = req.body;
 
     console.log(req.body, "Query");
@@ -1120,8 +1120,8 @@ async function run() {
     return jwt.sign(data, process.env.PRIVATE_TOKEN, { expiresIn: "3h" });
   }
 
-  function verifyToken(req, res, next) {
-    const bearerHeader = req?.cookies?.jwToken;
+  function isTokenExist(req, res, next) {
+    const bearerHeader = JSON.parse(req?.cookies?.jwToken);
 
     console.log(bearerHeader, typeof bearerHeader, "bearer header");
 
@@ -1497,18 +1497,25 @@ async function run() {
   });
 
   //get users draft application
-  app.get("/draftApplications/:id", verifyToken, async (req, res) => {
+  app.get("/draftApplications/:id", isTokenExist, async (req, res) => {
     console.log(req.cookies, "request in draft applications");
-    const id = req.params.id;
-    console.log(id);
 
-    const result = await draftApplicationCollection
-      .find({
-        userId: id,
-      })
-      .toArray();
+    jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
+      if (err) {
+        console.log("object");
+        return res.status(400).send({ message: "Unauthorized access" });
+      }
+      const id = req.params.id;
+      console.log(id);
 
-    res.send(result);
+      const result = await draftApplicationCollection
+        .find({
+          userId: id,
+        })
+        .toArray();
+
+      res.send(result);
+    });
   });
 
   // get specific applicationNo data
@@ -3027,11 +3034,11 @@ async function run() {
   });
 
   // get verification status
-  app.get("/getVerificationStatus", verifyToken, async (req, res) => {
+  app.get("/getVerificationStatus", isTokenExist, async (req, res) => {
     jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
       if (err) {
         console.log("object");
-        res.status(400).send({ message: "Unauthorized access" });
+        return res.status(400).send({ message: "Unauthorized access" });
       } else {
         const allPS = await userCollection.find({ role: "PS" }).toArray();
 
