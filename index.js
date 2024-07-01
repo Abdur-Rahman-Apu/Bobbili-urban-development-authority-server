@@ -1498,7 +1498,7 @@ async function run() {
 
   //get users draft application
   app.get("/draftApplications/:id", verifyToken, async (req, res) => {
-    console.log(req, req.cookies, "request in draft applications");
+    console.log(req.cookies, "request in draft applications");
     const id = req.params.id;
     console.log(id);
 
