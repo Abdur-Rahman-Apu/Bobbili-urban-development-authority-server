@@ -1193,7 +1193,7 @@ async function run() {
     res.cookie("loggedUser", JSON.stringify(storeInfo), {
       maxAge: 43200000, // cookie exist time 12 hour
       // httpOnly: true,
-      // secure: true,
+      secure: true,
       sameSite: "None",
     });
 
@@ -1211,7 +1211,7 @@ async function run() {
       res.cookie("jwToken", JSON.stringify(resultOfJWT?.token), {
         maxAge: 43200000, // cookie exist time 12 hour
         // httpOnly: true,
-        // secure: true,
+        secure: true,
         sameSite: "None",
       });
     }
