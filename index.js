@@ -9,9 +9,18 @@ const fetch = require("node-fetch");
 // import fetch from "node-fetch";
 const axios = require("axios");
 
-app.use(cors());
+// Configure CORS
+const corsOptions = {
+  origin: "http://localhost:5173", // Replace with your frontend domain
+  credentials: true, // This is important to allow cookies to be sent
+};
+
+app.use(cors(corsOptions));
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  console.log(res, "response");
+  if (!req.originalUrl.includes("login")) {
+    res.header("Access-Control-Allow-Origin", "*");
+  }
   next();
 });
 app.use(express.json());
@@ -1130,6 +1139,93 @@ async function run() {
     res.status(200).json({ success: true, token: bearerToken });
   });
 
+  //login
+
+  app.get("/login", async (req, res) => {
+    const { id, password } = JSON.parse(req.query.credentials);
+
+    const userInfo = await userCollection.findOne({ userId: id });
+
+    // if no user found
+    if (!userInfo) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    //CHECK:: if user is ps then checking he removed or not
+    if (
+      userInfo?.role?.toLowerCase() === "ps" &&
+      userInfo?.handOver.toString() === "true"
+    ) {
+      return res
+        .status(404)
+        .send({ message: "You handOvered your credentials" });
+    }
+
+    // checking user is already active or not
+    if (userInfo?.isLoggedIn) {
+      return res.status(404).send({ message: "User is already active" });
+    }
+
+    // checking password is matched or not
+    const isMatchPassword = userInfo.password === password;
+
+    if (!isMatchPassword) {
+      return res.status(404).send({ message: "Password is incorrect" });
+    }
+
+    const { _id, role, userId, name, gender, isLoggedIn } = userInfo;
+
+    const storeInfo = {
+      _id,
+      role,
+      userId,
+      name,
+      gender,
+      isLoggedIn,
+    };
+
+    if (role?.toLowerCase) {
+      storeInfo["handOver"] = userInfo?.handOver;
+      storeInfo["signId"] = userInfo?.signId;
+    }
+
+    // set user info into the cookie
+    res.cookie("loggedUser", JSON.stringify(storeInfo), {
+      maxAge: 43200000, // cookie exist time 12 hour
+      // httpOnly: true,
+      // secure: true,
+      // sameSite: "Lax",
+    });
+
+    // set token into the cookie
+
+    const response = await axios.post(
+      "https://residential-building.onrender.com/jwt",
+      storeInfo
+    );
+
+    console.log(response, "response");
+    const resultOfJWT = response?.data;
+
+    if (resultOfJWT?.success) {
+      res.cookie("jwToken", JSON.stringify(resultOfJWT?.token), {
+        maxAge: 43200000, // cookie exist time 12 hour
+        // httpOnly: true,
+        // secure: true,
+        // sameSite: "Lax",
+      });
+    }
+    // update logged user amount
+    axios.patch(
+      `https://residential-building.onrender.com/updateWithLoggedIn?userId=${JSON.stringify(
+        userInfo?._id
+      )}`
+    );
+
+    // return response to the client
+    res.send({ status: 1, message: "User found" });
+  });
+
   // get users data
   app.get("/getUser", async (req, res) => {
     const id = req.query.id;
@@ -1146,7 +1242,6 @@ async function run() {
         _id,
         role,
         userId,
-        password,
         name,
         gender,
         isLoggedIn,
@@ -1155,7 +1250,6 @@ async function run() {
       if (role?.toLowerCase() === "ps") {
         userInfo["handOver"] = result?.handOver;
         userInfo["signId"] = result?.signId;
-        userInfo["gramaPanchayat"] = result?.gramaPanchayat;
       }
 
       res.send({
