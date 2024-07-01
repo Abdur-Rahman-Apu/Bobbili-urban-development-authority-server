@@ -1194,7 +1194,7 @@ async function run() {
       maxAge: 43200000, // cookie exist time 12 hour
       // httpOnly: true,
       // secure: true,
-      sameSite: "Lax",
+      sameSite: "None",
     });
 
     // set token into the cookie
@@ -1212,7 +1212,7 @@ async function run() {
         maxAge: 43200000, // cookie exist time 12 hour
         // httpOnly: true,
         // secure: true,
-        sameSite: "Lax",
+        sameSite: "None",
       });
     }
     // update logged user amount
