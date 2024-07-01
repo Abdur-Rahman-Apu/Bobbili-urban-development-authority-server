@@ -1195,6 +1195,7 @@ async function run() {
       // httpOnly: true,
       secure: true,
       sameSite: "None",
+      path: "/",
     });
 
     // set token into the cookie
@@ -1213,6 +1214,7 @@ async function run() {
         // httpOnly: true,
         secure: true,
         sameSite: "None",
+        path: "/",
       });
     }
     // update logged user amount
