@@ -1198,11 +1198,11 @@ async function run() {
     // set user info into the cookie
     res.cookie("loggedUser", JSON.stringify(storeInfo), {
       maxAge: 43200000, // cookie exist time 12 hour
-      httpOnly: false,
-      secure: true,
-      sameSite: "None",
-      domain: "/",
-      path: "/",
+      // httpOnly: false,
+      // secure: true,
+      // sameSite: "None",
+      // domain: "/",
+      // path: "/",
     });
 
     // set token into the cookie
