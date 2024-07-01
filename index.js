@@ -23,7 +23,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use((req, res, next) => {
-  console.log(res, "response");
+  // console.log(res, "response");
   if (
     !req.originalUrl.includes("login") &&
     !req.originalUrl.includes("draftApplications")
@@ -1501,6 +1501,7 @@ async function run() {
     console.log(req.cookies, "request in draft applications");
 
     jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
+      console.log(err, "err in verify");
       if (err) {
         console.log("object");
         return res.status(400).send({ message: "Unauthorized access" });
