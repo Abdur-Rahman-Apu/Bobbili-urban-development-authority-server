@@ -24,7 +24,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use((req, res, next) => {
   console.log(res, "response");
-  if (!req.originalUrl.includes("login")) {
+  if (!req.originalUrl.includes("login" || "draftApplications")) {
     res.header("Access-Control-Allow-Origin", "*");
   }
   next();
