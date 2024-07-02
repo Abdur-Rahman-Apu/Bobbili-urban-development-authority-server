@@ -1131,6 +1131,7 @@ async function run() {
     } else {
       console.log("HERE");
       let bearer = bearerHeader.replaceAll('"', "");
+      console.log(bearer, "BEARER");
       bearer = bearerHeader.split(" ");
       const token = bearer[1];
       console.log(token, "TOKEN");
@@ -1143,7 +1144,6 @@ async function run() {
         req.token = token;
         next();
       });
-      next();
     }
   }
 
