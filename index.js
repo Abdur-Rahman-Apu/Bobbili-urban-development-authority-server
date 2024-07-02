@@ -1132,7 +1132,7 @@ async function run() {
       console.log("HERE");
       let bearer = bearerHeader.replaceAll('"', "");
       console.log(bearer, "BEARER");
-      bearer = bearerHeader.split(" ");
+      bearer = bearer.split(" ");
       const token = bearer[1];
       console.log(token, "TOKEN");
 
