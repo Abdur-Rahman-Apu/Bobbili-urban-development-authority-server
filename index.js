@@ -652,7 +652,7 @@ async function run() {
     return successRspFromJuspay;
   }
 
-  app.patch("/storePaymentInfo", isTokenExist, async (req, res) => {
+  app.patch("/storePaymentInfo", verifyToken, async (req, res) => {
     const { applicationNo, ...paymentInfo } = req.body;
 
     console.log(req.body, "Query");
@@ -1120,7 +1120,7 @@ async function run() {
     return jwt.sign(data, process.env.PRIVATE_TOKEN, { expiresIn: "3h" });
   }
 
-  function isTokenExist(req, res, next) {
+  function verifyToken(req, res, next) {
     const bearerHeader = req?.cookies?.jwToken;
 
     console.log(bearerHeader, typeof bearerHeader, "bearer header");
@@ -1130,10 +1130,19 @@ async function run() {
       res.status(401).send({ message: "Unauthorized Access" });
     } else {
       console.log("HERE");
-      const bearer = bearerHeader.split(" ");
+      let bearer = bearerHeader.replaceAll('"', "");
+      bearer = bearerHeader.split(" ");
       const token = bearer[1];
       console.log(token, "TOKEN");
-      req.token = token;
+
+      jwt.verify(token, process.env.PRIVATE_TOKEN, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "Unauthorized access." });
+        }
+        console.log(decoded, "DECODED");
+        req.token = token;
+        next();
+      });
       next();
     }
   }
@@ -1498,26 +1507,19 @@ async function run() {
   });
 
   //get users draft application
-  app.get("/draftApplications/:id", isTokenExist, async (req, res) => {
+  app.get("/draftApplications/:id", verifyToken, async (req, res) => {
     console.log(req.cookies, "request in draft applications");
 
-    jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
-      console.log(err, "err in verify");
-      if (err) {
-        console.log("object");
-        return res.status(400).send({ message: "Unauthorized access" });
-      }
-      const id = req.params.id;
-      console.log(id);
+    const id = req.params.id;
+    console.log(id);
 
-      const result = await draftApplicationCollection
-        .find({
-          userId: id,
-        })
-        .toArray();
+    const result = await draftApplicationCollection
+      .find({
+        userId: id,
+      })
+      .toArray();
 
-      res.send(result);
-    });
+    res.send(result);
   });
 
   // get specific applicationNo data
@@ -3036,7 +3038,7 @@ async function run() {
   });
 
   // get verification status
-  app.get("/getVerificationStatus", isTokenExist, async (req, res) => {
+  app.get("/getVerificationStatus", verifyToken, async (req, res) => {
     jwt.verify(req.token, process.env.PRIVATE_TOKEN, async function (err) {
       if (err) {
         console.log("object");
