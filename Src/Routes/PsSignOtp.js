@@ -7,7 +7,7 @@ const {
 const router = express.Router();
 
 router
-  .get("/add", handleInsertPsSignOtp)
+  .post("/add", handleInsertPsSignOtp)
   .get("/matchOtp", handleMatchPsSignOtp);
 
 module.exports = router;
