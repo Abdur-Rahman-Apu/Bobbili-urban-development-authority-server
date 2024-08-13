@@ -5,7 +5,7 @@ const app = express();
 const mime = require("mime-types");
 const http = require("http");
 const { connectMongoDB } = require("./Src/Configs/ConnectDB");
-const { corsOptions } = require("./Src/Configs/corsOptions");
+const { corsOptions } = require("./Src/Configs/CorsOptions");
 const { performCornJob } = require("./Src/Services/CornJob/CornJobTask");
 const { realTimeCommunication } = require("./Src/Services/SocketIo/SocketIo");
 
