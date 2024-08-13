@@ -45,6 +45,7 @@ connectMongoDB().then(() => {
 console.log(process.env.CLIENT_EMAIL, "client email");
 console.log(process.env.GD_PRIVATE_KEY, "private key");
 console.log(mime.contentType("example.DWG"));
+console.log(corsOptions);
 
 const port = process.env.PORT || 5000;
 
