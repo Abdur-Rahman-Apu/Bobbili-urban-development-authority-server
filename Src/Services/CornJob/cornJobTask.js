@@ -11,7 +11,6 @@ async function performMongoDBAction() {
     await client.connect();
 
     const allSubmitApplications = await findSubmitAppsByQuery({});
-    console.log(allSubmitApplications, "All");
 
     const checkDaysPassed = (dateFromDB) => {
       const dateAsFormat = dateFromDB.split("-").reverse().join("-");
