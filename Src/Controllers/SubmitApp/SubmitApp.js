@@ -135,6 +135,10 @@ const handleUpdateSubmitAppByPs = async (req, res) => {
   // console.log(oldDraftData[findExistingData]);
   // console.log(newDraftData);
 
+  const filter = {
+    applicationNo: appNo,
+  };
+
   const result = await updateSubmitAppByPs(filter, updateDoc);
 
   return res.send(result);
