@@ -187,7 +187,8 @@ const handlePaymentResponse = async (req, res) => {
 
   console.log(paymentData, "payment data");
 
-  const frontendDomain = "http://localhost:5173";
+  // const frontendDomain = "http://localhost:5173";
+  const frontendDomain = "https://bpa-buda.ap.gov.in";
   // const frontendDomain =
   //   "https://bobbili-urban-development-authority.netlify.app";
 
