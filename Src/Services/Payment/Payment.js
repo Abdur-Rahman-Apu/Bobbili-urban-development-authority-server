@@ -39,7 +39,7 @@ function generateUniqueID() {
 //   return decoded;
 // }
 
-function encrypt(plainText, workingKey) {
+function encrypt(plainText) {
   // Convert the working key from hex to a Buffer
   // const key = Buffer.from(workingKey, "hex");
 
@@ -55,17 +55,30 @@ function encrypt(plainText, workingKey) {
   // encrypted += cipher.final("hex");
 
   // return encrypted;
-  var m = crypto.createHash("md5");
-  m.update(workingKey);
-  var key = m.digest(); // This will be a buffer
-  var iv = Buffer.from([
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
-    0x0c, 0x0d, 0x0e, 0x0f,
-  ]); // IV as a buffer
-  var cipher = crypto.createCipheriv("aes-128-cbc", key, iv);
-  var encoded = cipher.update(plainText, "utf8", "hex");
-  encoded += cipher.final("hex");
-  return encoded;
+  // var m = crypto.createHash("md5");
+  // m.update(workingKey);
+  // var key = m.digest(); // This will be a buffer
+  // var iv = Buffer.from([
+  //   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+  //   0x0c, 0x0d, 0x0e, 0x0f,
+  // ]); // IV as a buffer
+  // var cipher = crypto.createCipheriv("aes-128-cbc", key, iv);
+  // var encoded = cipher.update(plainText, "utf8", "hex");
+  // encoded += cipher.final("hex");
+  // return encoded;
+
+  console.log(plainText, "plain text");
+
+  console.log(process.env.ENC_KEY, "key");
+  const outputEncoding = "base64";
+  const cipher = crypto.createCipheriv(
+    "aes-128-ecb",
+    process.env.ENC_KEY,
+    null
+  );
+  return Buffer.concat([cipher.update(plainText), cipher.final()]).toString(
+    outputEncoding
+  );
 }
 
 function decrypt(encText, workingKey) {

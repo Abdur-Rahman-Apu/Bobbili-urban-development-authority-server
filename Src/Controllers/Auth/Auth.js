@@ -12,6 +12,8 @@ const handleLogin = async (req, res) => {
 
   const userInfo = await userCollection.findOne({ userId: id });
 
+  console.log(userInfo, "user info");
+
   // if no user found
   if (!userInfo) {
     return res.status(404).send({ message: "User not found" });
