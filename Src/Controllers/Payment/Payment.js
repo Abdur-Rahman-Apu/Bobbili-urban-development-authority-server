@@ -136,7 +136,7 @@ const handlePaymentRequest = async (req, res) => {
 
   console.log(qs.stringify(`${order_id}|25|${10}`), "stringify");
   const mandatoryFieldsEnc = encrypt(
-    `${order_id}|25|${10}|Abdur|1234567890|123456|abcd|abcd|abcd|panchayat`
+    `${order_id}|25|10|Abdur|1234567890|123456|abcd|abcd|abcd|panchayat`
   );
   console.log(mandatoryFieldsEnc, "mae");
   const returnUrlEnc = encrypt(`${return_url}`);
