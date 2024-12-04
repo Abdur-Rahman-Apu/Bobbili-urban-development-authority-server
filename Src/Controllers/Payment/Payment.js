@@ -161,7 +161,7 @@ const handlePaymentRequest = async (req, res) => {
   return res.send({ url });
 };
 
-const redirectAfterPay = async ({ status, page, paymentData }) => {
+const redirectAfterPay = async ({ res, status, page, paymentData }) => {
   const frontendDomain = "https://bpa-buda.ap.gov.in";
 
   await updatePaymentStatus(paymentData, page);
@@ -254,16 +254,16 @@ const handlePaymentResponse = async (req, res) => {
       // Validate the response
       console.log("Payment Successful!");
       // Handle success: update DB, send email, etc.
-      redirectAfterPay({ status: 1, page, paymentData });
+      redirectAfterPay({ res, status: 1, page, paymentData });
       // res.redirect(`/payment-success/${data.Unique_Ref_Number}`); // Redirect to a React route
     } else {
-      redirectAfterPay({ status: 0, page, paymentData });
+      redirectAfterPay({ res, status: 0, page, paymentData });
       console.log("Hash Mismatch. Payment Validation Failed.");
       // res.redirect("/payment-failed"); // Redirect to a React failure route
     }
   } else {
     console.log("Payment Failed.");
-    redirectAfterPay({ status: 0, page, paymentData });
+    redirectAfterPay({ res, status: 0, page, paymentData });
 
     // res.redirect("/payment-failed"); // Redirect to a React failure route
   }
