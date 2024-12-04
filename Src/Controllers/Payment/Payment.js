@@ -136,7 +136,7 @@ const handlePaymentRequest = async (req, res) => {
 
   console.log(qs.stringify(`${order_id}|25|${10}`), "stringify");
   const mandatoryFieldsEnc = encrypt(
-    `${order_id}|25|10|Abdur|1234567890|123456|Bobbili|Bobbili|Bobbili|Bobbili`
+    `${order_id}|25|10|Abdur|1234567890|123456789012|Bobbili|Bobbili|Bobbili|Bobbili`
   );
   console.log(mandatoryFieldsEnc, "mae");
   const returnUrlEnc = encrypt(`${return_url}`);
@@ -148,7 +148,7 @@ const handlePaymentRequest = async (req, res) => {
   const payModeEnc = encrypt(`8`);
 
   console.log(
-    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10&paymode=8`
+    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456789123|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10&paymode=8`
   );
 
   const url = `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields=${mandatoryFieldsEnc}&optional fields=&returnurl=${returnUrlEnc}&Reference No=${refNoEnc}&submerchantid=${subMerchantIdEnc}&transaction amount=${amountEnc}&paymode=${payModeEnc}`;
