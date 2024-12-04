@@ -161,11 +161,11 @@ const handlePaymentRequest = async (req, res) => {
   return res.send({ url });
 };
 
-const redirectAfterPay = async ({ status, page, orderId }) => {
+const redirectAfterPay = async ({ status, page, paymentData }) => {
   const frontendDomain = "https://bpa-buda.ap.gov.in";
 
   await updatePaymentStatus(paymentData, page);
-  if (order_status && storedPayInfo && status) {
+  if (status) {
     console.log(page, "page in payment");
 
     switch (page) {
@@ -205,6 +205,14 @@ const handlePaymentResponse = async (req, res) => {
     message: "end",
   };
 
+  console.log(
+    `${data.ID}|${data.Response_Code}|${data.Unique_Ref_Number}|` +
+      `${data.Service_Tax_Amount}|${data.Processing_Fee_Amount}|${data.Total_Amount}|` +
+      `${data.Transaction_Amount}|${data.Transaction_Date}|${data.Interchange_Value}|` +
+      `${data.TDR}|${data.Payment_Mode}|${data.SubMerchantId}|${data.ReferenceNo}|${data.TPS}|${aesKey}`,
+    "verification string"
+  );
+
   console.log(paymentData, "payment data");
 
   if (data["Response Code"] === "E000") {
@@ -215,8 +223,6 @@ const handlePaymentResponse = async (req, res) => {
       `${data.Transaction_Amount}|${data.Transaction_Date}|${data.Interchange_Value}|` +
       `${data.TDR}|${data.Payment_Mode}|${data.SubMerchantId}|${data.ReferenceNo}|${data.TPS}|${aesKey}`;
 
-    console.log(verificationString, "verification string");
-
     const hash = crypto
       .createHash("sha512")
       .update(verificationString)
@@ -224,7 +230,6 @@ const handlePaymentResponse = async (req, res) => {
 
     console.log(hash === data.RS, "check hash data.RS");
 
-    return;
     // const paymentData = {
     //   order_id,
     //   order_status,
@@ -249,110 +254,19 @@ const handlePaymentResponse = async (req, res) => {
       // Validate the response
       console.log("Payment Successful!");
       // Handle success: update DB, send email, etc.
-      res.redirect(`/payment-success/${data.Unique_Ref_Number}`); // Redirect to a React route
+      redirectAfterPay({ status: 1, page, paymentData });
+      // res.redirect(`/payment-success/${data.Unique_Ref_Number}`); // Redirect to a React route
     } else {
+      redirectAfterPay({ status: 0, page, paymentData });
       console.log("Hash Mismatch. Payment Validation Failed.");
-      res.redirect("/payment-failed"); // Redirect to a React failure route
+      // res.redirect("/payment-failed"); // Redirect to a React failure route
     }
   } else {
     console.log("Payment Failed.");
-    return;
-    res.redirect("/payment-failed"); // Redirect to a React failure route
+    redirectAfterPay({ status: 0, page, paymentData });
+
+    // res.redirect("/payment-failed"); // Redirect to a React failure route
   }
-  // const decryptedData = decrypt(encResp, process.env.WORKING_KEY);
-
-  // const data = qs.parse(decryptedData);
-
-  // console.log(decryptedData, "decrypted data");
-  // console.log(data, "parse data");
-  // Process the decrypted data and verify payment status
-
-  // const {
-  //   order_id,
-  //   order_status,
-  //   failure_message,
-  //   status_code,
-  //   status_message,
-  //   amount,
-  //   currency,
-  //   tracking_id,
-  //   payment_mode,
-  //   card_name,
-  //   customer_card_id,
-  //   billing_name,
-  //   billing_email,
-  //   billing_tel,
-  //   trans_date,
-  // } = data || {};
-
-  // const paymentData = {
-  //   order_id,
-  //   order_status,
-  //   failure_message,
-  //   status_code,
-  //   status_message,
-  //   amount,
-  //   currency,
-  //   tracking_id,
-  //   payment_mode,
-  //   card_name,
-  //   customer_card_id,
-  //   billing_name,
-  //   billing_email,
-  //   billing_tel,
-  //   trans_date,
-  //   message: "end",
-  // };
-
-  console.log(paymentData, "payment data");
-
-  // const frontendDomain = "http://localhost:5173";
-  // const frontendDomain = "https://bpa-buda.ap.gov.in";
-  // const frontendDomain =
-  //   "https://bobbili-urban-development-authority.netlify.app";
-
-  const storedPayInfo = await findPaymentInfoByQuery({ order_id: orderId });
-
-  // if (order_status && storedPayInfo) {
-  //   await updatePaymentStatus(paymentData, page);
-
-  //   console.log(page, "page in payment");
-
-  //   switch (page) {
-  //     case "dashboard":
-  //       return res.redirect(
-  //         `${frontendDomain}/dashboard/draftApplication/paymentStatus/${storedPayInfo?._id}`
-  //       );
-
-  //     case "home":
-  //       return res.redirect(
-  //         `${frontendDomain}/onlinePayment/paymentStatus/${storedPayInfo?._id}`
-  //       );
-  //   }
-  // } else {
-  //   switch (page) {
-  //     case "dashboard":
-  //       return res.redirect(
-  //         `${frontendDomain}/dashboard/draftApplication/payment`
-  //       );
-
-  //     case "home":
-  //       return res.redirect(`${frontendDomain}/onlinePayment`);
-  //   }
-  // }
-  // switch (order_status) {
-  //   case "Success":
-  //     await updatePaymentStatus(paymentData,page);
-  //     break;
-  //   case "Failure":
-  //     break;
-  //   case "Aborted":
-  //     break;
-  //   case "Invalid":
-  //     break;
-  //   case "Timeout":
-  //     break;
-  // }
 };
 
 const handleGetPayInfo = async (req, res) => {
