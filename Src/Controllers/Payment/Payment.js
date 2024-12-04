@@ -112,7 +112,9 @@ const handlePaymentRequest = async (req, res) => {
   );
 
   const updatePayDoc = {
-    $set: { order_id },
+    $set: {
+      orderId: order_id,
+    },
   };
 
   const payQuery = { applicationNo, message: "initial" };
@@ -146,10 +148,10 @@ const handlePaymentRequest = async (req, res) => {
   console.log(refNoEnc);
   const subMerchantIdEnc = encrypt(`25`);
   const amountEnc = encrypt(`${10}`);
-  const payModeEnc = encrypt(`8`);
+  const payModeEnc = encrypt(`9`);
 
   console.log(
-    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456789123|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10&paymode=8`
+    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456789123|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10&paymode=9`
   );
 
   const url = `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields=${mandatoryFieldsEnc}&optional fields=&returnurl=${returnUrlEnc}&Reference No=${refNoEnc}&submerchantid=${subMerchantIdEnc}&transaction amount=${amountEnc}&paymode=${payModeEnc}`;
@@ -159,67 +161,11 @@ const handlePaymentRequest = async (req, res) => {
   return res.send({ url });
 };
 
-const handlePaymentResponse = async (req, res) => {
-  console.log(req.body);
-  const { encResp } = req.body;
-  const { page, orderId } = req.query;
-  const decryptedData = decrypt(encResp, process.env.WORKING_KEY);
-
-  const data = qs.parse(decryptedData);
-
-  console.log(decryptedData, "decrypted data");
-  console.log(data, "parse data");
-  // Process the decrypted data and verify payment status
-
-  const {
-    order_id,
-    order_status,
-    failure_message,
-    status_code,
-    status_message,
-    amount,
-    currency,
-    tracking_id,
-    payment_mode,
-    card_name,
-    customer_card_id,
-    billing_name,
-    billing_email,
-    billing_tel,
-    trans_date,
-  } = data || {};
-
-  const paymentData = {
-    order_id,
-    order_status,
-    failure_message,
-    status_code,
-    status_message,
-    amount,
-    currency,
-    tracking_id,
-    payment_mode,
-    card_name,
-    customer_card_id,
-    billing_name,
-    billing_email,
-    billing_tel,
-    trans_date,
-    message: "end",
-  };
-
-  console.log(paymentData, "payment data");
-
-  // const frontendDomain = "http://localhost:5173";
+const redirectAfterPay = async ({ status, page, orderId }) => {
   const frontendDomain = "https://bpa-buda.ap.gov.in";
-  // const frontendDomain =
-  //   "https://bobbili-urban-development-authority.netlify.app";
 
-  const storedPayInfo = await findPaymentInfoByQuery({ order_id: orderId });
-
-  if (order_status && storedPayInfo) {
-    await updatePaymentStatus(paymentData, page);
-
+  await updatePaymentStatus(paymentData, page);
+  if (order_status && storedPayInfo && status) {
     console.log(page, "page in payment");
 
     switch (page) {
@@ -244,6 +190,156 @@ const handlePaymentResponse = async (req, res) => {
         return res.redirect(`${frontendDomain}/onlinePayment`);
     }
   }
+};
+
+const handlePaymentResponse = async (req, res) => {
+  console.log(req.body, "body");
+  // const { encResp } = req.body;
+  const { page, orderId } = req.query;
+  const aesKey = process.env.ENC_KEY;
+  console.log(page, orderId, "page&orderid");
+  const data = req.body;
+
+  const paymentData = {
+    statusCode: data["Response Code"],
+    message: "end",
+  };
+
+  console.log(paymentData, "payment data");
+
+  if (data["Response Code"] === "E000") {
+    // Check if payment is successful
+    const verificationString =
+      `${data.ID}|${data.Response_Code}|${data.Unique_Ref_Number}|` +
+      `${data.Service_Tax_Amount}|${data.Processing_Fee_Amount}|${data.Total_Amount}|` +
+      `${data.Transaction_Amount}|${data.Transaction_Date}|${data.Interchange_Value}|` +
+      `${data.TDR}|${data.Payment_Mode}|${data.SubMerchantId}|${data.ReferenceNo}|${data.TPS}|${aesKey}`;
+
+    console.log(verificationString, "verification string");
+
+    const hash = crypto
+      .createHash("sha512")
+      .update(verificationString)
+      .digest("hex");
+
+    console.log(hash === data.RS, "check hash data.RS");
+
+    return;
+    // const paymentData = {
+    //   order_id,
+    //   order_status,
+    //   failure_message,
+    //   status_code,
+    //   status_message,
+    //   amount,
+    //   currency,
+    //   tracking_id,
+    //   payment_mode,
+    //   card_name,
+    //   customer_card_id,
+    //   billing_name,
+    //   billing_email,
+    //   billing_tel,
+    //   trans_date,
+    //   message: "end",
+    // };
+
+    if (hash === data.RS) {
+      console.log("hash match");
+      // Validate the response
+      console.log("Payment Successful!");
+      // Handle success: update DB, send email, etc.
+      res.redirect(`/payment-success/${data.Unique_Ref_Number}`); // Redirect to a React route
+    } else {
+      console.log("Hash Mismatch. Payment Validation Failed.");
+      res.redirect("/payment-failed"); // Redirect to a React failure route
+    }
+  } else {
+    console.log("Payment Failed.");
+    return;
+    res.redirect("/payment-failed"); // Redirect to a React failure route
+  }
+  // const decryptedData = decrypt(encResp, process.env.WORKING_KEY);
+
+  // const data = qs.parse(decryptedData);
+
+  // console.log(decryptedData, "decrypted data");
+  // console.log(data, "parse data");
+  // Process the decrypted data and verify payment status
+
+  // const {
+  //   order_id,
+  //   order_status,
+  //   failure_message,
+  //   status_code,
+  //   status_message,
+  //   amount,
+  //   currency,
+  //   tracking_id,
+  //   payment_mode,
+  //   card_name,
+  //   customer_card_id,
+  //   billing_name,
+  //   billing_email,
+  //   billing_tel,
+  //   trans_date,
+  // } = data || {};
+
+  // const paymentData = {
+  //   order_id,
+  //   order_status,
+  //   failure_message,
+  //   status_code,
+  //   status_message,
+  //   amount,
+  //   currency,
+  //   tracking_id,
+  //   payment_mode,
+  //   card_name,
+  //   customer_card_id,
+  //   billing_name,
+  //   billing_email,
+  //   billing_tel,
+  //   trans_date,
+  //   message: "end",
+  // };
+
+  console.log(paymentData, "payment data");
+
+  // const frontendDomain = "http://localhost:5173";
+  // const frontendDomain = "https://bpa-buda.ap.gov.in";
+  // const frontendDomain =
+  //   "https://bobbili-urban-development-authority.netlify.app";
+
+  const storedPayInfo = await findPaymentInfoByQuery({ order_id: orderId });
+
+  // if (order_status && storedPayInfo) {
+  //   await updatePaymentStatus(paymentData, page);
+
+  //   console.log(page, "page in payment");
+
+  //   switch (page) {
+  //     case "dashboard":
+  //       return res.redirect(
+  //         `${frontendDomain}/dashboard/draftApplication/paymentStatus/${storedPayInfo?._id}`
+  //       );
+
+  //     case "home":
+  //       return res.redirect(
+  //         `${frontendDomain}/onlinePayment/paymentStatus/${storedPayInfo?._id}`
+  //       );
+  //   }
+  // } else {
+  //   switch (page) {
+  //     case "dashboard":
+  //       return res.redirect(
+  //         `${frontendDomain}/dashboard/draftApplication/payment`
+  //       );
+
+  //     case "home":
+  //       return res.redirect(`${frontendDomain}/onlinePayment`);
+  //   }
+  // }
   // switch (order_status) {
   //   case "Success":
   //     await updatePaymentStatus(paymentData,page);
