@@ -95,7 +95,8 @@ const handlePaymentRequest = async (req, res) => {
   // const redirect_url = `${baseUrl}/payment/response?page=${page}&orderId=${order_id}`;
   // const return_url = `http://localhost:5173/dashboard/draftApplication/paymentStatus/${order_id}`;
   // const return_url = `https://bobbili-urban-development-authority.netlify.app/dashboard/draftApplication/paymentStatus/${order_id}`;
-  const return_url = `https://bpa-buda.ap.gov.in/dashboard/draftApplication/paymentStatus/${order_id}`;
+  // const return_url = `https://bpa-buda.ap.gov.in/dashboard/draftApplication/paymentStatus/${order_id}`;
+  const return_url = `${baseUrl}/payment/response?page=${page}&orderId=${order_id}`;
   // const cancel_url = redirect_url;
 
   console.log(process.env.ENC_KEY, "ENC key");
@@ -148,10 +149,10 @@ const handlePaymentRequest = async (req, res) => {
   const payModeEnc = encrypt(`8`);
 
   console.log(
-    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456789123|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10&paymode=8`
+    `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields= ${order_id}|25|10|Abdur|1234567890|123456789123|Bobbili|Bobbili|Bobbili|Bobbili&optional fields=&returnurl=${return_url}&Reference No=${order_id}&submerchantid=25&transaction amount=10`
   );
 
-  const url = `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields=${mandatoryFieldsEnc}&optional fields=&returnurl=${returnUrlEnc}&Reference No=${refNoEnc}&submerchantid=${subMerchantIdEnc}&transaction amount=${amountEnc}&paymode=${payModeEnc}`;
+  const url = `https://eazypayuat.icicibank.com/EazyPG?merchantid=${process.env.MERCHANT_ID}&mandatory fields=${mandatoryFieldsEnc}&optional fields=&returnurl=${returnUrlEnc}&Reference No=${refNoEnc}&submerchantid=${subMerchantIdEnc}&transaction amount=${amountEnc}`;
 
   console.log(url);
 
@@ -159,6 +160,7 @@ const handlePaymentRequest = async (req, res) => {
 };
 
 const handlePaymentResponse = async (req, res) => {
+  console.log(req.body);
   const { encResp } = req.body;
   const { page, orderId } = req.query;
   const decryptedData = decrypt(encResp, process.env.WORKING_KEY);
