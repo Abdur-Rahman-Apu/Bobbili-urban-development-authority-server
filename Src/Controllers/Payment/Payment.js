@@ -228,6 +228,8 @@ const handlePaymentResponse = async (req, res) => {
       .update(verificationString)
       .digest("hex");
 
+    console.log(hash, "hash");
+
     console.log(hash === data.RS, "check hash data.RS");
 
     // const paymentData = {
