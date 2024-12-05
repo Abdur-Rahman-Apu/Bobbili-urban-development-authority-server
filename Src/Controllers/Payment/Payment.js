@@ -8,6 +8,7 @@ const {
   findPaymentInfoByQuery,
   updatePayment,
   findPaymentInfosBySearchQuery,
+  findAndDeletePreviousPayDetails,
 } = require("../../Services/DBQueries/DbQueries");
 const {
   encrypt,
@@ -16,7 +17,7 @@ const {
   updatePaymentStatus,
 } = require("../../Services/Payment/Payment");
 
-const qs = require("querystring");
+const crypto = require("crypto");
 require("dotenv").config();
 
 const handleStoreInitialPaymentInfo = async (req, res) => {
@@ -27,10 +28,11 @@ const handleStoreInitialPaymentInfo = async (req, res) => {
 
   const applicationData = await findDraftAppByQuery(query);
 
-  await updatePayment(
-    { ...query, message: "initial" },
-    { $set: { message: "cancel" } }
-  );
+  // await updatePayment(
+  //   { ...query, message: "initial" },
+  //   { $set: { message: "cancel" } }
+  // );
+  await findAndDeletePreviousPayDetails(query);
 
   const insertInfoOfPayment = await insertPayment({
     message: "initial",
@@ -61,17 +63,9 @@ const handleStoreInitialPaymentInfo = async (req, res) => {
 };
 
 const handlePaymentRequest = async (req, res) => {
-  const {
-    amount,
-    billing_name,
-    billing_email,
-    billing_tel,
-    applicationNo,
-    page,
-    // redirect_url,
-    // cancel_url,
-  } = req.body;
+  const { amount, payerInfo, applicationNo, page } = req.body;
 
+  console.log(payerInfo, "payerInfo");
   console.log(req.body, "payment");
 
   const initialPaymentInfo = await findPaymentInfoByQuery({
@@ -137,7 +131,6 @@ const handlePaymentRequest = async (req, res) => {
   //   process.env.WORKING_KEY
   // );
 
-  console.log(qs.stringify(`${order_id}|25|${10}`), "stringify");
   const mandatoryFieldsEnc = encrypt(
     `${order_id}|25|10|Abdur|1234567890|123456789012|Bobbili|Bobbili|Bobbili|Bobbili`
   );
@@ -162,7 +155,8 @@ const handlePaymentRequest = async (req, res) => {
 };
 
 const redirectAfterPay = async ({ res, status, page, paymentData }) => {
-  const frontendDomain = "https://bpa-buda.ap.gov.in";
+  // const frontendDomain = "https://bpa-buda.ap.gov.in";
+  const frontendDomain = "http://localhost:5173";
 
   await updatePaymentStatus(paymentData, page);
   if (status) {
@@ -200,7 +194,7 @@ const handlePaymentResponse = async (req, res) => {
   console.log(page, orderId, "page&orderid");
   const data = req.body;
 
-  const paymentData = {
+  let paymentData = {
     statusCode: data["Response Code"],
     message: "end",
   };
@@ -217,6 +211,15 @@ const handlePaymentResponse = async (req, res) => {
 
   if (data["Response Code"] === "E000") {
     // Check if payment is successful
+
+    paymentData = {
+      ...paymentData,
+      transactionId: data["Unique Ref Number"],
+      paymentMode: data["Payment Mode"],
+      paymentDate: data["Transaction Date"],
+    };
+
+    console.log(paymentData, "payment data in success");
     const verificationString =
       `${data.ID}|${data.Response_Code}|${data.Unique_Ref_Number}|` +
       `${data.Service_Tax_Amount}|${data.Processing_Fee_Amount}|${data.Total_Amount}|` +
@@ -265,6 +268,11 @@ const handlePaymentResponse = async (req, res) => {
     }
   } else {
     console.log("Payment Failed.");
+    const date = new Date().toLocaleString();
+
+    const regex = /(?<month>\d{2})\/(?<day>\d{1,2})\/(?<year>\d{4})/g;
+    const paymentDate = date.replaceAll(regex, "$<day>-$<month>-$<year>");
+    paymentData = { ...paymentData, paymentDate };
     redirectAfterPay({ res, status: 0, page, paymentData });
 
     // res.redirect("/payment-failed"); // Redirect to a React failure route

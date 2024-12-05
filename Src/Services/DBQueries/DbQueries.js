@@ -220,6 +220,13 @@ const updatePayment = async (query, updatedDoc) => {
   return await paymentCollection.updateOne(query, updatedDoc);
 };
 
+const findAndDeletePreviousPayDetails = async (query) => {
+  const findApp = await paymentCollection.findOne(query);
+  if (findApp) {
+    await paymentCollection.deleteOne(query);
+  }
+};
+
 const findPaymentInfoByQuery = async (query) => {
   return await paymentCollection.findOne(query);
 };
@@ -279,4 +286,5 @@ module.exports = {
   findPaymentInfoByQuery,
   updatePayment,
   findPaymentInfosBySearchQuery,
+  findAndDeletePreviousPayDetails,
 };
