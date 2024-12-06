@@ -155,8 +155,8 @@ const handlePaymentRequest = async (req, res) => {
 };
 
 const redirectAfterPay = async ({ res, status, page, paymentData }) => {
-  // const frontendDomain = "https://bpa-buda.ap.gov.in";
-  const frontendDomain = "http://localhost:5173";
+  const frontendDomain = "https://bpa-buda.ap.gov.in";
+  // const frontendDomain = "http://localhost:5173";
 
   await updatePaymentStatus(paymentData, page);
   if (status) {
