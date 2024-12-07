@@ -22,7 +22,7 @@ const handleLogin = async (req, res) => {
   //CHECK:: if user is ps then checking he removed or not
   if (
     userInfo?.role?.toLowerCase() === "ps" &&
-    userInfo?.handOver.toString() === "true"
+    userInfo?.handOver?.toString() === "true"
   ) {
     return res.status(404).send({ message: "You handOvered your credentials" });
   }
