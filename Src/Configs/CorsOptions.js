@@ -5,5 +5,4 @@ const corsOptions = {
   // Replace with your frontend domain
   credentials: true, // This is important to allow cookies to be sent
 };
-
 module.exports = { corsOptions };
